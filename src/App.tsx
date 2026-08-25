@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import {
   RESULTS, bankScore, createGame, throwDart,
   totalScore, undoDart, winnerNames, type GameMode, type GolfGame, type Stroke,
@@ -161,6 +161,64 @@ function Scorecard({ game }: { game: GolfGame }) {
   </div>;
 }
 
+const polarPoint = (radius: number, angle: number): [number, number] => {
+  const radians = angle * Math.PI / 180;
+  return [180 + radius * Math.cos(radians), 292 + radius * Math.sin(radians)];
+};
+
+const wedgePath = (inner: number, outer: number, start: number, end: number): string => {
+  const [outerStartX, outerStartY] = polarPoint(outer, start);
+  const [outerEndX, outerEndY] = polarPoint(outer, end);
+  const [innerEndX, innerEndY] = polarPoint(inner, end);
+  const [innerStartX, innerStartY] = polarPoint(inner, start);
+  return `M ${outerStartX} ${outerStartY} A ${outer} ${outer} 0 0 1 ${outerEndX} ${outerEndY} L ${innerEndX} ${innerEndY} A ${inner} ${inner} 0 0 0 ${innerStartX} ${innerStartY} Z`;
+};
+
+function DartboardSegment({ hole, current, disabled, onScore }: { hole: number; current?: Stroke; disabled: boolean; onScore: (score: Stroke) => void }) {
+  const boardOrder = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+  const redRing = boardOrder.indexOf(hole) % 2 === 0;
+  const ring = redRing ? "red" : "green";
+  const single = redRing ? "dark" : "light";
+  const adjacentRing = redRing ? "green" : "red";
+  const adjacentSingle = redRing ? "light" : "dark";
+  const activate = (score: Stroke) => !disabled && onScore(score);
+  const keyActivate = (event: KeyboardEvent<SVGGElement>, score: Stroke) => {
+    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); activate(score); }
+  };
+  const zone = (score: Stroke, label: string, children: ReactNode) => <g className={`svg-zone${current === score ? " selected" : ""}${disabled ? " disabled" : ""}`}
+    role="button" tabIndex={disabled ? -1 : 0} aria-label={`${label}, ${score} ${score === 1 ? "stroke" : "strokes"}`}
+    onClick={() => activate(score)} onKeyDown={(event) => keyActivate(event, score)}>{children}</g>;
+
+  return <section className="dartboard-picker" aria-label="Where did the dart land?">
+    <svg className="dartboard-segment" viewBox="0 0 360 310" role="img" aria-label={`Dartboard segment for target ${hole}`}>
+      <defs>
+        <filter id="board-shadow" x="-30%" y="-20%" width="160%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#09251b" floodOpacity=".22" /></filter>
+      </defs>
+      <g filter="url(#board-shadow)">
+        {zone(5, "Wrong number", <>
+          <path className={`board-single ${adjacentSingle}`} d={wedgePath(24, 242, -128, -111)} />
+          <path className={`board-ring ${adjacentRing}`} d={wedgePath(220, 242, -128, -111)} />
+          <path className={`board-ring ${adjacentRing}`} d={wedgePath(130, 151, -128, -111)} />
+          <text className="adjacent-number" x="91" y="145">5</text><text className="adjacent-label" x="91" y="162">WRONG</text>
+          <path className={`board-single ${adjacentSingle}`} d={wedgePath(24, 242, -69, -52)} />
+          <path className={`board-ring ${adjacentRing}`} d={wedgePath(220, 242, -69, -52)} />
+          <path className={`board-ring ${adjacentRing}`} d={wedgePath(130, 151, -69, -52)} />
+          <text className="adjacent-number" x="269" y="145">5</text><text className="adjacent-label" x="269" y="162">WRONG</text>
+        </>)}
+        {zone(6, "Outside board", <><path className="board-outside" d={wedgePath(242, 267, -111, -69)} /><text x="180" y="38"><tspan className="svg-score">6</tspan><tspan className="svg-label" dx="7">OUTSIDE BOARD</tspan></text></>)}
+        {zone(1, "Double", <><path className={`board-ring ${ring}`} d={wedgePath(220, 242, -111, -69)} /><text x="180" y="67"><tspan className="svg-score">1</tspan><tspan className="svg-label" dx="7">DOUBLE</tspan></text></>)}
+        {zone(4, "Large single", <><path className={`board-single ${single}`} d={wedgePath(151, 220, -111, -69)} /><text x="180" y="108"><tspan className="svg-score">4</tspan><tspan className="svg-label" dx="7">LARGE SINGLE</tspan></text></>)}
+        {zone(2, "Treble", <><path className={`board-ring ${ring}`} d={wedgePath(130, 151, -111, -69)} /><text x="180" y="154"><tspan className="svg-score">2</tspan><tspan className="svg-label" dx="7">TREBLE</tspan></text></>)}
+        {zone(3, "Small single", <><path className={`board-single ${single}`} d={wedgePath(24, 130, -111, -69)} /><text x="180" y="213"><tspan className="svg-score">3</tspan><tspan className="svg-label" dx="7">SMALL</tspan></text></>)}
+        <circle className="board-bull-outer" cx="180" cy="292" r="24" /><circle className="board-bull" cx="180" cy="292" r="10" />
+      </g>
+    </svg>
+    <button className={`bounce-zone${current === 7 ? " selected" : ""}`} disabled={disabled} onClick={() => activate(7)} aria-label="Bounce Out / Off The Board, 7 strokes">
+      <span className="bounce-arrow">↩</span><span className="zone-score">7</span><span><b>Bounce out</b><small>or off the board</small></span>
+    </button>
+  </section>;
+}
+
 function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (game: GolfGame) => void; onNew: () => void; onRecords: () => void }) {
   const active = game.competitors[game.currentCompetitor];
   const current = active.darts.at(-1);
@@ -168,15 +226,6 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
   const [showCard, setShowCard] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
   const leaders = useMemo(() => [...game.competitors].sort((a, b) => totalScore(a) - totalScore(b)), [game]);
-  const scoreZone = (strokes: Stroke, className: string) => {
-    const item = RESULTS.find((entry) => entry.strokes === strokes)!;
-    const displayLabel = strokes === 3 ? "Small" : strokes === 7 ? "Bounce / off board" : item.label;
-    return <button className={`${className}${current === strokes ? " selected" : ""}`} disabled={active.darts.length >= 3}
-      aria-label={`${item.label}, ${strokes} ${strokes === 1 ? "stroke" : "strokes"}`}
-      onClick={() => setGame(throwDart(game, strokes))}>
-      <span className="zone-score">{strokes}</span><span className="zone-label">{displayLabel}</span>
-    </button>;
-  };
 
   useEffect(() => {
     if (!game.completedAt) return;
@@ -222,20 +271,7 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
         : <div><strong>Throw dart one</strong><p>Tap where it landed.</p></div>}
     </section>
 
-    <section className="dartboard-picker" aria-label="Where did the dart land?">
-      <div className="board-zones">
-        {scoreZone(6, "zone zone-outside")}
-        {scoreZone(1, "zone zone-double")}
-        {scoreZone(4, "zone zone-large")}
-        {scoreZone(2, "zone zone-treble")}
-        {scoreZone(3, "zone zone-small")}
-        <div className="board-point" aria-hidden="true" />
-      </div>
-      <div className="miss-zones">
-        {scoreZone(5, "miss-zone zone-wrong")}
-        {scoreZone(7, "miss-zone zone-bounce")}
-      </div>
-    </section>
+    <DartboardSegment hole={game.currentHole} current={current} disabled={active.darts.length >= 3} onScore={(score) => setGame(throwDart(game, score))} />
 
     <div className="play-actions">
       <button className="secondary" disabled={!active.darts.length} onClick={() => setGame(undoDart(game))}>Undo dart</button>
