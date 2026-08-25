@@ -9,8 +9,8 @@ describe("Darty Golf rules", () => {
     expect(game.currentHole).toBe(2);
   });
 
-  it("rotates teams and advances the hole", () => {
-    let game = createGame("teams", ["Red", "Blue"], 9);
+  it("rotates group players and advances the hole", () => {
+    let game = createGame("group", ["Red", "Blue"], 9);
     game = scoreHole(game, 3);
     expect(game.currentCompetitor).toBe(1);
     expect(game.currentHole).toBe(1);
@@ -20,7 +20,7 @@ describe("Darty Golf rules", () => {
   });
 
   it("calculates totals and winners", () => {
-    let game = createGame("teams", ["Red", "Blue"], 9);
+    let game = createGame("group", ["Red", "Blue"], 9);
     game = scoreHole(game, 2);
     game = scoreHole(game, 4);
     expect(totalScore(game.competitors[0])).toBe(2);
