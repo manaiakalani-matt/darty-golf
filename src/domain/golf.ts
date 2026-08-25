@@ -1,0 +1,96 @@
+export type GameMode = "solo" | "teams";
+
+export const RESULTS = [
+  { strokes: 1, short: "D", label: "Double", detail: "Hole in one" },
+  { strokes: 2, short: "T", label: "Treble", detail: "Two strokes" },
+  { strokes: 3, short: "S", label: "Small single", detail: "Inner single" },
+  { strokes: 4, short: "L", label: "Large single", detail: "Outer single" },
+  { strokes: 5, short: "×", label: "Wrong number", detail: "Hit another number" },
+  { strokes: 6, short: "O", label: "Outside board", detail: "Non-scoring board area" },
+  { strokes: 7, short: "B", label: "Bounce / surround", detail: "Did not stay in the board" },
+] as const;
+
+export type Stroke = (typeof RESULTS)[number]["strokes"];
+
+export interface Competitor {
+  id: string;
+  name: string;
+  scores: Array<Stroke | null>;
+  darts: Stroke[];
+}
+
+export interface GolfGame {
+  id: string;
+  mode: GameMode;
+  holes: 9 | 18;
+  createdAt: string;
+  completedAt: string | null;
+  currentHole: number;
+  currentCompetitor: number;
+  competitors: Competitor[];
+}
+
+export const totalScore = (competitor: Competitor): number =>
+  competitor.scores.reduce<number>((sum, score) => sum + (score ?? 0), 0);
+
+export const completedHoles = (competitor: Competitor): number =>
+  competitor.scores.filter((score) => score !== null).length;
+
+export const scoreToPar = (competitor: Competitor): number =>
+  totalScore(competitor) - completedHoles(competitor) * 3;
+
+export const formatToPar = (value: number): string => value === 0 ? "E" : value > 0 ? `+${value}` : `${value}`;
+
+export const winnerNames = (game: GolfGame): string[] => {
+  const lowest = Math.min(...game.competitors.map(totalScore));
+  return game.competitors.filter((competitor) => totalScore(competitor) === lowest).map((competitor) => competitor.name);
+};
+
+export const createGame = (mode: GameMode, names: string[], holes: 9 | 18 = 18): GolfGame => ({
+  id: crypto.randomUUID(),
+  mode,
+  holes,
+  createdAt: new Date().toISOString(),
+  completedAt: null,
+  currentHole: 1,
+  currentCompetitor: 0,
+  competitors: names.map((name, index) => ({
+    id: `${Date.now()}-${index}`,
+    name: name.trim(),
+    scores: Array.from({ length: holes }, () => null),
+    darts: [],
+  })),
+});
+
+export const throwDart = (game: GolfGame, strokes: Stroke): GolfGame => {
+  if (game.completedAt) return game;
+  const competitors = game.competitors.map((competitor, index) => index === game.currentCompetitor
+    ? { ...competitor, darts: [...competitor.darts, strokes].slice(0, 3) }
+    : competitor);
+  return { ...game, competitors };
+};
+
+export const undoDart = (game: GolfGame): GolfGame => ({
+  ...game,
+  competitors: game.competitors.map((competitor, index) => index === game.currentCompetitor
+    ? { ...competitor, darts: competitor.darts.slice(0, -1) }
+    : competitor),
+});
+
+export const bankScore = (game: GolfGame): GolfGame => {
+  const player = game.competitors[game.currentCompetitor];
+  const score = player.darts.at(-1);
+  if (!score || game.completedAt) return game;
+  const competitors = game.competitors.map((competitor, index) => index === game.currentCompetitor
+    ? { ...competitor, scores: competitor.scores.map((old, hole) => hole === game.currentHole - 1 ? score : old), darts: [] }
+    : competitor);
+  const lastCompetitor = game.currentCompetitor === game.competitors.length - 1;
+  const lastHole = game.currentHole === game.holes;
+  return {
+    ...game,
+    competitors,
+    currentCompetitor: lastCompetitor ? 0 : game.currentCompetitor + 1,
+    currentHole: lastCompetitor && !lastHole ? game.currentHole + 1 : game.currentHole,
+    completedAt: lastCompetitor && lastHole ? new Date().toISOString() : null,
+  };
+};
