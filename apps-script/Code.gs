@@ -17,7 +17,7 @@ function setupDartyGolf() {
   if (rules.getLastRow() < 2) rules.getRange(2, 1, 7, 3).setValues([
     [1, "Double", "Hole in one"], [2, "Treble", "Two strokes"], [3, "Small single", "Inner single"],
     [4, "Large single", "Outer single"], [5, "Wrong number", "Hit another number"],
-    [6, "Outside board", "Non-scoring part of the physical board"], [7, "Bounce / surround", "Dart did not remain in the board"]
+    [6, "Outside board", "Non-scoring part of the physical board"], [7, "Bounce Out / Off The Board", "Dart bounced out or missed the board completely"]
   ]);
   return "Darty Golf sheets are ready.";
 }
