@@ -39,7 +39,7 @@ function Setup({ onStart, onRecords }: { onStart: (game: GolfGame) => void; onRe
       <h2>Choose your round</h2>
       <div className="segmented" aria-label="Game mode">
         <button className={mode === "solo" ? "active" : ""} onClick={() => chooseMode("solo")}>Solo</button>
-        <button className={mode === "teams" ? "active" : ""} onClick={() => chooseMode("teams")}>Teams</button>
+        <button className={mode === "group" ? "active" : ""} onClick={() => chooseMode("group")}>Group</button>
       </div>
       <div className="segmented compact" aria-label="Round length">
         <button className={holes === 9 ? "active" : ""} onClick={() => setHoles(9)}>Front 9</button>
@@ -48,13 +48,13 @@ function Setup({ onStart, onRecords }: { onStart: (game: GolfGame) => void; onRe
 
       <div className="names">
         {names.map((name, index) => <label key={index}>
-          {mode === "solo" ? "Player name" : `Team ${index + 1}`}
-          <input value={name} maxLength={28} autoFocus={index === 0} placeholder={mode === "solo" ? "Your name" : `Team ${index + 1} name`}
+          {mode === "solo" ? "Player name" : `Player ${index + 1}`}
+          <input value={name} maxLength={28} autoFocus={index === 0} placeholder={mode === "solo" ? "Your name" : `Player ${index + 1} name`}
             onChange={(event) => setNames(names.map((old, i) => i === index ? event.target.value : old))} />
         </label>)}
       </div>
-      {mode === "teams" && names.length < 8 && <button className="text-button" onClick={() => setNames([...names, ""])}>+ Add another team</button>}
-      {mode === "teams" && names.length > 2 && <button className="text-button danger" onClick={() => setNames(names.slice(0, -1))}>Remove last team</button>}
+      {mode === "group" && names.length < 8 && <button className="text-button" onClick={() => setNames([...names, ""])}>+ Add another player</button>}
+      {mode === "group" && names.length > 2 && <button className="text-button danger" onClick={() => setNames(names.slice(0, -1))}>Remove last player</button>}
       <button className="primary" disabled={!canStart} onClick={() => onStart(createGame(mode, names, holes))}>Tee off</button>
     </section>
 
@@ -73,7 +73,7 @@ function TopRounds({ title, records, onSelect }: { title: string; records: GameR
       {records.map((record) => <li key={record.id}>
         <button onClick={() => onSelect(record)}>
           <span className="rank" aria-hidden="true" />
-          <span><strong>{record.winner}</strong><small>{record.mode === "solo" ? "Solo" : "Teams"}</small></span>
+          <span><strong>{record.winner}</strong><small>{record.mode === "solo" ? "Solo" : "Group"}</small></span>
           <b>{record.lowestScore}</b>
         </button>
       </li>)}
@@ -140,7 +140,7 @@ function Records({ onHome }: { onHome: () => void }) {
       {records.length > 0 && <section className="recent-records">
         <div className="section-title"><div><p className="eyebrow">Score archive</p><h2>Latest games</h2></div><button className="score-toggle" onClick={load}>Refresh</button></div>
         {records.map((record) => <button className="game-record card" key={record.id} onClick={() => setSelected(record)}>
-          <span><strong>{record.winner}</strong><small>{record.mode === "solo" ? "Solo round" : "Team match"} · {record.holes} holes · {date(record.completedAt)}</small></span>
+          <span><strong>{record.winner}</strong><small>{record.mode === "solo" ? "Solo round" : "Group round"} · {record.holes} holes · {date(record.completedAt)}</small></span>
           <b>{record.lowestScore}</b>
         </button>)}
       </section>}
