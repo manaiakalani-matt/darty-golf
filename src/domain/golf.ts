@@ -75,3 +75,26 @@ export const scoreHole = (game: GolfGame, score: Stroke): GolfGame => {
     completedAt: lastCompetitor && lastHole ? new Date().toISOString() : null,
   };
 };
+
+export const undoLastScore = (game: GolfGame): GolfGame => {
+  const completedScores = game.competitors.reduce((count, competitor) => count + completedHoles(competitor), 0);
+  if (completedScores === 0) return game;
+
+  const previousCompetitor = game.completedAt
+    ? game.competitors.length - 1
+    : game.currentCompetitor === 0 ? game.competitors.length - 1 : game.currentCompetitor - 1;
+  const previousHole = game.completedAt
+    ? game.holes
+    : game.currentCompetitor === 0 ? game.currentHole - 1 : game.currentHole;
+  const competitors = game.competitors.map((competitor, index) => index === previousCompetitor
+    ? { ...competitor, scores: competitor.scores.map((score, hole) => hole === previousHole - 1 ? null : score) }
+    : competitor);
+
+  return {
+    ...game,
+    competitors,
+    currentCompetitor: previousCompetitor,
+    currentHole: previousHole,
+    completedAt: null,
+  };
+};
