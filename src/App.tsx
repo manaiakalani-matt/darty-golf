@@ -199,17 +199,17 @@ function DartboardSegment({ hole, current, disabled, onScore }: { hole: number; 
           <path className={`board-single ${adjacentSingle}`} d={wedgePath(24, 242, -128, -111)} />
           <path className={`board-ring ${adjacentRing}`} d={wedgePath(220, 242, -128, -111)} />
           <path className={`board-ring ${adjacentRing}`} d={wedgePath(130, 151, -128, -111)} />
-          <text className="adjacent-number" x="91" y="145">5</text><text className="adjacent-label" x="91" y="162">WRONG</text>
+          <text className="adjacent-number" x="91" y="139">5</text><text className="adjacent-label" x="91" y="157"><tspan x="91">WRONG</tspan><tspan x="91" dy="8">NUMBER</tspan></text>
           <path className={`board-single ${adjacentSingle}`} d={wedgePath(24, 242, -69, -52)} />
           <path className={`board-ring ${adjacentRing}`} d={wedgePath(220, 242, -69, -52)} />
           <path className={`board-ring ${adjacentRing}`} d={wedgePath(130, 151, -69, -52)} />
-          <text className="adjacent-number" x="269" y="145">5</text><text className="adjacent-label" x="269" y="162">WRONG</text>
+          <text className="adjacent-number" x="269" y="139">5</text><text className="adjacent-label" x="269" y="157"><tspan x="269">WRONG</tspan><tspan x="269" dy="8">NUMBER</tspan></text>
         </>)}
-        {zone(6, "Outside board", <><path className="board-outside" d={wedgePath(242, 267, -111, -69)} /><text x="180" y="38"><tspan className="svg-score">6</tspan><tspan className="svg-label" dx="7">OUTSIDE BOARD</tspan></text></>)}
-        {zone(1, "Double", <><path className={`board-ring ${ring}`} d={wedgePath(220, 242, -111, -69)} /><text x="180" y="67"><tspan className="svg-score">1</tspan><tspan className="svg-label" dx="7">DOUBLE</tspan></text></>)}
-        {zone(4, "Large single", <><path className={`board-single ${single}`} d={wedgePath(151, 220, -111, -69)} /><text x="180" y="108"><tspan className="svg-score">4</tspan><tspan className="svg-label" dx="7">LARGE SINGLE</tspan></text></>)}
-        {zone(2, "Treble", <><path className={`board-ring ${ring}`} d={wedgePath(130, 151, -111, -69)} /><text x="180" y="154"><tspan className="svg-score">2</tspan><tspan className="svg-label" dx="7">TREBLE</tspan></text></>)}
-        {zone(3, "Small single", <><path className={`board-single ${single}`} d={wedgePath(24, 130, -111, -69)} /><text x="180" y="213"><tspan className="svg-score">3</tspan><tspan className="svg-label" dx="7">SMALL</tspan></text></>)}
+        {zone(6, "Outside board", <><path className="board-outside" d={wedgePath(242, 267, -111, -69)} /><text className="bed-number" x="180" y="28">6</text><text className="bed-label" x="180" y="44">OUTSIDE BOARD</text></>)}
+        {zone(1, "Double", <><path className={`board-ring ${ring}`} d={wedgePath(220, 242, -111, -69)} /><text className="ring-number" x="166" y="67">1</text><text className="ring-label" x="193" y="67">DOUBLE</text></>)}
+        {zone(4, "Large single", <><path className={`board-single ${single}`} d={wedgePath(151, 220, -111, -69)} /><text className="bed-number" x="180" y="99">4</text><text className="bed-label" x="180" y="117">LARGE SINGLE</text></>)}
+        {zone(2, "Treble", <><path className={`board-ring ${ring}`} d={wedgePath(130, 151, -111, -69)} /><text className="ring-number" x="166" y="153">2</text><text className="ring-label" x="193" y="153">TREBLE</text></>)}
+        {zone(3, "Small single", <><path className={`board-single ${single}`} d={wedgePath(24, 130, -111, -69)} /><text className="bed-number" x="180" y="204">3</text><text className="bed-label" x="180" y="222">SMALL</text></>)}
         <circle className="board-bull-outer" cx="180" cy="292" r="24" /><circle className="board-bull" cx="180" cy="292" r="10" />
       </g>
     </svg>
