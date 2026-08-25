@@ -72,4 +72,48 @@ input:focus { border-color: #23634d; box-shadow: 0 0 0 3px rgba(35,99,77,.13); }
 .leader-row:first-child .place { background: #efc24f; }
 .leader-row b { text-align: right; font-size: 1.2rem; }
 .leaderboard small { display: block; color: #718078; text-align: center; padding: 8px 0 2px; }
-@media (max-width: 390px) { .score-buttons b { font-size: .78rem; } .score-buttons small { display: none; } .stroke-number { flex-basis: 32px; width: 32px; height: 32px; } }
+.home-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: min(100%, 310px); margin: 0 auto 12px; padding: 5px; border-radius: 99px; background: rgba(18,55,42,.09); }
+.home-tabs button { border: 0; border-radius: 99px; padding: 10px 18px; background: transparent; color: #5a776b; font-weight: 800; }
+.home-tabs button.active { background: #12372a; color: #fffaf0; box-shadow: 0 4px 12px rgba(18,55,42,.18); }
+.records-header { text-align: center; padding: 28px 12px 17px; }
+.records-header h1 { font-family: "Fraunces", Georgia, serif; color: #12372a; font-size: clamp(3rem,12vw,4.5rem); line-height: .95; letter-spacing: -.045em; margin: 8px 0 12px; }
+.records-header > p:last-child { margin: 0 auto; max-width: 430px; color: #587065; line-height: 1.45; }
+.record-highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.record-highlight { min-height: 170px; border-radius: 23px; padding: 18px; color: #fffced; background: linear-gradient(145deg,#174c39,#0c2c21); display: flex; flex-direction: column; box-shadow: 0 12px 25px rgba(18,55,42,.16); }
+.record-highlight > span { text-transform: uppercase; letter-spacing: .1em; font-size: .68rem; font-weight: 800; color: #b7cabf; }
+.record-highlight strong { font-family: "Fraunces", Georgia, serif; color: #efc24f; font-size: 3.4rem; line-height: 1; margin: 16px 0 3px; }
+.record-highlight b { font-size: .92rem; overflow-wrap: anywhere; }
+.record-highlight small { margin-top: 4px; color: #b7cabf; }
+.record-highlight p { margin: auto 0 0; color: #b7cabf; font-size: .82rem; }
+.record-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 22px; }
+.record-stats div { background: rgba(255,255,255,.62); border: 1px solid #d9d4c3; border-radius: 17px; padding: 13px 16px; display: flex; align-items: baseline; justify-content: space-between; }
+.record-stats strong { font-family: "Fraunces", Georgia, serif; font-size: 1.75rem; color: #12372a; }
+.record-stats span { color: #65796f; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.section-title { display: flex; justify-content: space-between; align-items: center; margin: 0 3px 8px; }
+.section-title h2 { font-family: "Fraunces", Georgia, serif; font-size: 1.65rem; margin: 3px 0 0; }
+.game-record { padding: 17px 18px; }
+.game-record-head { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 12px; }
+.game-record-head > div:first-child { display: grid; gap: 3px; }
+.game-record-head > div:first-child strong { font-family: "Fraunces", Georgia, serif; font-size: 1.25rem; color: #12372a; }
+.game-record-head span, .game-record time { color: #718078; font-size: .76rem; }
+.game-record-head > div:last-child { display: grid; text-align: right; }
+.game-record-head > div:last-child b { font-family: "Fraunces", Georgia, serif; color: #12372a; font-size: 2rem; line-height: .9; }
+.game-record-head > div:last-child small { color: #718078; margin-top: 4px; }
+.record-competitors { margin: 14px 0 10px; border-top: 1px solid #e5e1d4; border-bottom: 1px solid #e5e1d4; padding: 6px 0; }
+.record-competitors div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: .86rem; }
+.record-competitors b { color: #12372a; }
+.records-message { text-align: center; color: #65796f; }
+.records-message.error { color: #8a3e33; }
+.records-message .text-button { display: block; margin: 5px auto 0; }
+.loader { display: inline-block; width: 15px; height: 15px; border: 2px solid #c4c8bd; border-top-color: #23634d; border-radius: 50%; margin-right: 8px; vertical-align: -2px; animation: spin .8s linear infinite; }
+.result-actions { display: grid; gap: 10px; }
+.result-actions .secondary { width: 100%; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 390px) {
+  .score-buttons b { font-size: .78rem; }
+  .score-buttons small { display: none; }
+  .stroke-number { flex-basis: 32px; width: 32px; height: 32px; }
+  .record-highlight { min-height: 155px; padding: 15px; }
+  .record-highlight strong { font-size: 2.8rem; }
+  .record-stats div { display: grid; gap: 2px; }
+}
