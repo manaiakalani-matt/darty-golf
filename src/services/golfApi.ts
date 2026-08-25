@@ -1,7 +1,6 @@
 import type { GolfGame } from "../domain/golf";
 
-// Add the deployed Apps Script /exec URL here after following apps-script/README.md.
-export const DARTY_GOLF_API_URL = "";
+export const DARTY_GOLF_API_URL = "https://script.google.com/macros/s/AKfycbx16vpj0FIFRm1fyBhA3x12RTO936-2oLBPXWsMdpwCbCoDg5OcSZ0xyY5Wp3TReCPxUw/exec";
 export const isCloudConnected = (): boolean => Boolean(DARTY_GOLF_API_URL);
 
 export async function saveCompletedGame(game: GolfGame): Promise<void> {
