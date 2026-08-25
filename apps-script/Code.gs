@@ -67,7 +67,8 @@ function records_() {
     var competitors = game.competitors.map(function (competitor) {
       return {
         name: competitor.name,
-        total: competitor.scores.reduce(function (sum, score) { return sum + Number(score || 0); }, 0)
+        total: competitor.scores.reduce(function (sum, score) { return sum + Number(score || 0); }, 0),
+        scores: competitor.scores.map(function (score) { return Number(score || 0); })
       };
     });
     return {
