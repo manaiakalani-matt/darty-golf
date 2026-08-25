@@ -22,7 +22,12 @@ function setupDartyGolf() {
   return "Darty Golf sheets are ready.";
 }
 
-function doGet() { return json_({ ok: true, app: "Darty Golf", status: "ready" }); }
+function doGet(event) {
+  try {
+    if (event && event.parameter && event.parameter.action === "records") return json_({ ok: true, records: records_() });
+    return json_({ ok: true, app: "Darty Golf", status: "ready" });
+  } catch (error) { return json_({ ok: false, message: String(error.message || error) }); }
+}
 
 function doPost(event) {
   try {
@@ -52,6 +57,29 @@ function saveGame_(game) {
     });
     if (rows.length) sheet_(DG_SHEETS.scores).getRange(sheet_(DG_SHEETS.scores).getLastRow() + 1, 1, rows.length, 5).setValues(rows);
   } finally { lock.releaseLock(); }
+}
+
+function records_() {
+  var games = sheet_(DG_SHEETS.games);
+  if (games.getLastRow() < 2) return [];
+  return games.getRange(2, 1, games.getLastRow() - 1, 8).getValues().map(function (row) {
+    var game = JSON.parse(row[7]);
+    var competitors = game.competitors.map(function (competitor) {
+      return {
+        name: competitor.name,
+        total: competitor.scores.reduce(function (sum, score) { return sum + Number(score || 0); }, 0)
+      };
+    });
+    return {
+      id: String(row[0]),
+      completedAt: String(row[2]),
+      mode: String(row[3]),
+      holes: Number(row[4]),
+      winner: String(row[5]),
+      competitors: competitors,
+      lowestScore: Math.min.apply(null, competitors.map(function (competitor) { return competitor.total; }))
+    };
+  }).sort(function (a, b) { return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(); });
 }
 
 function ensureSheet_(spreadsheet, definition) {
