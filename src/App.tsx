@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import {
-  RESULTS, createGame, scoreHole,
-  totalScore, winnerNames, type GameMode, type GolfGame, type Stroke,
+  RESULTS, completedHoles, createGame, scoreHole,
+  totalScore, undoLastScore, winnerNames, type GameMode, type GolfGame, type Stroke,
 } from "./domain/golf";
 import { topRecords, type GameRecord } from "./domain/records";
 import { fetchRecords, isCloudConnected, saveCompletedGame } from "./services/golfApi";
@@ -221,6 +221,7 @@ function DartboardSegment({ hole, onScore }: { hole: number; onScore: (score: St
 
 function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (game: GolfGame) => void; onNew: () => void; onRecords: () => void }) {
   const active = game.competitors[game.currentCompetitor];
+  const canUndo = game.competitors.some((competitor) => completedHoles(competitor) > 0);
   const [showCard, setShowCard] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
   const leaders = useMemo(() => [...game.competitors].sort((a, b) => totalScore(a) - totalScore(b)), [game]);
@@ -269,6 +270,11 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
     </section>
 
     <DartboardSegment hole={game.currentHole} onScore={(score) => setGame(scoreHole(game, score))} />
+
+    <div className="round-actions">
+      <button className="secondary" disabled={!canUndo} onClick={() => setGame(undoLastScore(game))}>Undo last score</button>
+      <button className="exit-button" onClick={() => window.confirm("Exit this round? Your unfinished scores will be lost.") && onNew()}>Exit round</button>
+    </div>
   </main>;
 }
 
