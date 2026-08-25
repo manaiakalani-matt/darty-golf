@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#12372a"/>
+  <circle cx="256" cy="250" r="150" fill="#f4f0df" stroke="#efc24f" stroke-width="18"/>
+  <circle cx="256" cy="250" r="102" fill="#23634d"/>
+  <circle cx="256" cy="250" r="56" fill="#efc24f"/>
+  <path d="M352 62 260 246" stroke="#f7f3e4" stroke-width="24" stroke-linecap="round"/>
+  <path d="m350 60 58 5-31 49z" fill="#e95a47"/>
+  <circle cx="256" cy="250" r="15" fill="#e95a47"/>
+  <text x="256" y="443" text-anchor="middle" font-family="Arial,sans-serif" font-size="62" font-weight="800" fill="#f4f0df">DG</text>
+</svg>
