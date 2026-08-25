@@ -16,7 +16,6 @@ export interface Competitor {
   id: string;
   name: string;
   scores: Array<Stroke | null>;
-  darts: Stroke[];
 }
 
 export interface GolfGame {
@@ -58,31 +57,13 @@ export const createGame = (mode: GameMode, names: string[], holes: 9 | 18 = 18):
     id: `${Date.now()}-${index}`,
     name: name.trim(),
     scores: Array.from({ length: holes }, () => null),
-    darts: [],
   })),
 });
 
-export const throwDart = (game: GolfGame, strokes: Stroke): GolfGame => {
+export const scoreHole = (game: GolfGame, score: Stroke): GolfGame => {
   if (game.completedAt) return game;
   const competitors = game.competitors.map((competitor, index) => index === game.currentCompetitor
-    ? { ...competitor, darts: [...competitor.darts, strokes].slice(0, 3) }
-    : competitor);
-  return { ...game, competitors };
-};
-
-export const undoDart = (game: GolfGame): GolfGame => ({
-  ...game,
-  competitors: game.competitors.map((competitor, index) => index === game.currentCompetitor
-    ? { ...competitor, darts: competitor.darts.slice(0, -1) }
-    : competitor),
-});
-
-export const bankScore = (game: GolfGame): GolfGame => {
-  const player = game.competitors[game.currentCompetitor];
-  const score = player.darts.at(-1);
-  if (!score || game.completedAt) return game;
-  const competitors = game.competitors.map((competitor, index) => index === game.currentCompetitor
-    ? { ...competitor, scores: competitor.scores.map((old, hole) => hole === game.currentHole - 1 ? score : old), darts: [] }
+    ? { ...competitor, scores: competitor.scores.map((old, hole) => hole === game.currentHole - 1 ? score : old) }
     : competitor);
   const lastCompetitor = game.currentCompetitor === game.competitors.length - 1;
   const lastHole = game.currentHole === game.holes;
