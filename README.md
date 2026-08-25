@@ -2,6 +2,8 @@
 
 A mobile-first scorer for the darts game Golf. Play holes 1–18 (or a quick front nine), throw up to three darts per hole, and remember: only the latest dart counts.
 
+**Play:** https://manaiakalani-matt.github.io/darty-golf/
+
 ## Features
 
 - Solo and team modes
