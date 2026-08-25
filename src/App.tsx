@@ -168,6 +168,15 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
   const [showCard, setShowCard] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
   const leaders = useMemo(() => [...game.competitors].sort((a, b) => totalScore(a) - totalScore(b)), [game]);
+  const scoreZone = (strokes: Stroke, className: string) => {
+    const item = RESULTS.find((entry) => entry.strokes === strokes)!;
+    const displayLabel = strokes === 3 ? "Small" : strokes === 7 ? "Bounce / off board" : item.label;
+    return <button className={`${className}${current === strokes ? " selected" : ""}`} disabled={active.darts.length >= 3}
+      aria-label={`${item.label}, ${strokes} ${strokes === 1 ? "stroke" : "strokes"}`}
+      onClick={() => setGame(throwDart(game, strokes))}>
+      <span className="zone-score">{strokes}</span><span className="zone-label">{displayLabel}</span>
+    </button>;
+  };
 
   useEffect(() => {
     if (!game.completedAt) return;
@@ -213,9 +222,20 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
         : <div><strong>Throw dart one</strong><p>Tap where it landed.</p></div>}
     </section>
 
-    <section className="score-buttons">{RESULTS.map((item) => <button key={item.strokes} disabled={active.darts.length >= 3} onClick={() => setGame(throwDart(game, item.strokes as Stroke))}>
-      <span className="stroke-number">{item.strokes}</span><span><b>{item.label}</b><small>{item.detail}</small></span>
-    </button>)}</section>
+    <section className="dartboard-picker" aria-label="Where did the dart land?">
+      <div className="board-zones">
+        {scoreZone(6, "zone zone-outside")}
+        {scoreZone(1, "zone zone-double")}
+        {scoreZone(4, "zone zone-large")}
+        {scoreZone(2, "zone zone-treble")}
+        {scoreZone(3, "zone zone-small")}
+        <div className="board-point" aria-hidden="true" />
+      </div>
+      <div className="miss-zones">
+        {scoreZone(5, "miss-zone zone-wrong")}
+        {scoreZone(7, "miss-zone zone-bounce")}
+      </div>
+    </section>
 
     <div className="play-actions">
       <button className="secondary" disabled={!active.darts.length} onClick={() => setGame(undoDart(game))}>Undo dart</button>
