@@ -1,6 +1,7 @@
 export interface RecordCompetitor {
   name: string;
   total: number;
+  scores: number[];
 }
 
 export interface GameRecord {
@@ -13,12 +14,8 @@ export interface GameRecord {
   lowestScore: number;
 }
 
-export const bestRecord = (records: GameRecord[], holes: 9 | 18): GameRecord | null =>
+export const topRecords = (records: GameRecord[], holes: 9 | 18, limit = 5): GameRecord[] =>
   records
     .filter((record) => record.holes === holes)
-    .sort((a, b) => a.lowestScore - b.lowestScore || Date.parse(b.completedAt) - Date.parse(a.completedAt))[0] ?? null;
-
-export const recordToPar = (record: GameRecord): number => record.lowestScore - record.holes * 3;
-
-export const recordedHoles = (records: GameRecord[]): number =>
-  records.reduce((sum, record) => sum + record.holes * record.competitors.length, 0);
+    .sort((a, b) => a.lowestScore - b.lowestScore || Date.parse(b.completedAt) - Date.parse(a.completedAt))
+    .slice(0, limit);
