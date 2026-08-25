@@ -7,7 +7,7 @@ export interface RecordCompetitor {
 export interface GameRecord {
   id: string;
   completedAt: string;
-  mode: "solo" | "teams";
+  mode: "solo" | "group" | "teams";
   holes: 9 | 18;
   winner: string;
   competitors: RecordCompetitor[];
