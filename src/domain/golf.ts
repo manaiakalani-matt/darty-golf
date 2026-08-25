@@ -1,4 +1,4 @@
-export type GameMode = "solo" | "teams";
+export type GameMode = "solo" | "group";
 
 export const RESULTS = [
   { strokes: 1, short: "D", label: "Double", detail: "Hole in one" },
