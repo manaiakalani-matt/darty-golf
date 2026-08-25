@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  RESULTS, bankScore, createGame, formatToPar, scoreToPar, throwDart,
+  RESULTS, bankScore, createGame, throwDart,
   totalScore, undoDart, winnerNames, type GameMode, type GolfGame, type Stroke,
 } from "./domain/golf";
-import { bestRecord, recordedHoles, recordToPar, type GameRecord } from "./domain/records";
+import { topRecords, type GameRecord } from "./domain/records";
 import { fetchRecords, isCloudConnected, saveCompletedGame } from "./services/golfApi";
 
 type AppView = "home" | "records";
@@ -66,19 +66,44 @@ function Setup({ onStart, onRecords }: { onStart: (game: GolfGame) => void; onRe
   </main>;
 }
 
-function RecordHighlight({ label, record }: { label: string; record: GameRecord | null }) {
-  return <article className="record-highlight">
-    <span>{label}</span>
-    {record ? <>
-      <strong>{record.lowestScore}</strong>
-      <b>{record.winner}</b>
-      <small>{formatToPar(recordToPar(record))} to par</small>
-    </> : <p>No completed rounds yet</p>}
-  </article>;
+function TopRounds({ title, records, onSelect }: { title: string; records: GameRecord[]; onSelect: (record: GameRecord) => void }) {
+  return <section className="top-rounds card">
+    <h2>{title}</h2>
+    {records.length === 0 ? <p className="empty-list">No completed rounds yet</p> : <ol>
+      {records.map((record) => <li key={record.id}>
+        <button onClick={() => onSelect(record)}>
+          <span className="rank" aria-hidden="true" />
+          <span><strong>{record.winner}</strong><small>{record.mode === "solo" ? "Solo" : "Teams"}</small></span>
+          <b>{record.lowestScore}</b>
+        </button>
+      </li>)}
+    </ol>}
+  </section>;
+}
+
+function RecordScoreSheet({ record, onClose }: { record: GameRecord; onClose: () => void }) {
+  return <div className="score-sheet-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="score-sheet-modal card" role="dialog" aria-modal="true" aria-labelledby="score-sheet-title">
+      <div className="score-sheet-head">
+        <div><p className="eyebrow">{record.holes}-hole score sheet</p><h2 id="score-sheet-title">{record.winner}</h2></div>
+        <button className="score-toggle" onClick={onClose} aria-label="Close score sheet">Close</button>
+      </div>
+      <div className="scorecard-wrap">
+        <table className="scorecard">
+          <thead><tr><th>Hole</th>{record.competitors.map((competitor) => <th key={competitor.name}>{competitor.name}</th>)}</tr></thead>
+          <tbody>{Array.from({ length: record.holes }, (_, index) => <tr key={index}>
+            <th>{index + 1}</th>{record.competitors.map((competitor) => <td key={competitor.name}>{competitor.scores[index] ?? "–"}</td>)}
+          </tr>)}</tbody>
+          <tfoot><tr><th>Total</th>{record.competitors.map((competitor) => <td key={competitor.name}>{competitor.total}</td>)}</tr></tfoot>
+        </table>
+      </div>
+    </section>
+  </div>;
 }
 
 function Records({ onHome }: { onHome: () => void }) {
   const [records, setRecords] = useState<GameRecord[] | null>(null);
+  const [selected, setSelected] = useState<GameRecord | null>(null);
   const [error, setError] = useState("");
   const load = () => {
     setRecords(null);
@@ -91,8 +116,8 @@ function Records({ onHome }: { onHome: () => void }) {
 
   useEffect(load, []);
 
-  const best9 = useMemo(() => bestRecord(records ?? [], 9), [records]);
-  const best18 = useMemo(() => bestRecord(records ?? [], 18), [records]);
+  const top9 = useMemo(() => topRecords(records ?? [], 9), [records]);
+  const top18 = useMemo(() => topRecords(records ?? [], 18), [records]);
   const date = (value: string) => new Intl.DateTimeFormat("en-NZ", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
   return <main className="shell records-shell">
@@ -100,38 +125,27 @@ function Records({ onHome }: { onHome: () => void }) {
     <header className="records-header">
       <p className="eyebrow">Clubhouse history</p>
       <h1>Records</h1>
-      <p>Lowest score wins. Nine and eighteen-hole records are ranked separately.</p>
+      <p>Lowest score wins. Tap any round to see its full score sheet.</p>
     </header>
 
     {records === null ? <section className="card records-message"><span className="loader" />Loading records…</section> : <>
-      <section className="record-highlights">
-        <RecordHighlight label="Best front 9" record={best9} />
-        <RecordHighlight label="Best full 18" record={best18} />
-      </section>
-
-      <section className="record-stats">
-        <div><strong>{records.length}</strong><span>Rounds</span></div>
-        <div><strong>{recordedHoles(records)}</strong><span>Player holes</span></div>
+      <section className="top-rounds-grid">
+        <TopRounds title="Top 5 · Front 9" records={top9} onSelect={setSelected} />
+        <TopRounds title="Top 5 · Full 18" records={top18} onSelect={setSelected} />
       </section>
 
       {error && <section className="card records-message error">{error}<button className="text-button" onClick={load}>Try again</button></section>}
       {!error && records.length === 0 && <section className="card records-message">No rounds yet. Complete a game to set the first record.</section>}
 
       {records.length > 0 && <section className="recent-records">
-        <div className="section-title"><div><p className="eyebrow">Score archive</p><h2>Past games</h2></div><button className="score-toggle" onClick={load}>Refresh</button></div>
-        {records.map((record) => <article className="game-record card" key={record.id}>
-          <div className="game-record-head">
-            <div><strong>{record.winner}</strong><span>{record.mode === "solo" ? "Solo round" : "Team match"} · {record.holes} holes</span></div>
-            <div><b>{record.lowestScore}</b><small>{formatToPar(recordToPar(record))}</small></div>
-          </div>
-          <div className="record-competitors">
-            {[...record.competitors].sort((a, b) => a.total - b.total).map((competitor) =>
-              <div key={competitor.name}><span>{competitor.name}</span><b>{competitor.total}</b></div>)}
-          </div>
-          <time dateTime={record.completedAt}>{date(record.completedAt)}</time>
-        </article>)}
+        <div className="section-title"><div><p className="eyebrow">Score archive</p><h2>Latest games</h2></div><button className="score-toggle" onClick={load}>Refresh</button></div>
+        {records.map((record) => <button className="game-record card" key={record.id} onClick={() => setSelected(record)}>
+          <span><strong>{record.winner}</strong><small>{record.mode === "solo" ? "Solo round" : "Team match"} · {record.holes} holes · {date(record.completedAt)}</small></span>
+          <b>{record.lowestScore}</b>
+        </button>)}
       </section>}
     </>}
+    {selected && <RecordScoreSheet record={selected} onClose={() => setSelected(null)} />}
   </main>;
 }
 
@@ -170,7 +184,7 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
     return <main className="shell results-shell">
       <header className="hero compact-hero"><div className="flag">🏆</div><p className="eyebrow">Clubhouse result</p><h1>{winners.join(" & ")}</h1><p>{winners.length > 1 ? "Finish tied for the lead" : "Wins Darty Golf"}</p></header>
       <section className="card leaderboard">
-        {leaders.map((competitor, index) => <div className="leader-row" key={competitor.id}><span className="place">{index + 1}</span><strong>{competitor.name}</strong><span>{formatToPar(scoreToPar(competitor))}</span><b>{totalScore(competitor)}</b></div>)}
+        {leaders.map((competitor, index) => <div className="leader-row" key={competitor.id}><span className="place">{index + 1}</span><strong>{competitor.name}</strong><b>{totalScore(competitor)}</b></div>)}
         <small>{saveStatus}</small>
       </section>
       <section className="card"><Scorecard game={game} /></section>
@@ -190,7 +204,7 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
 
     <section className="target-card">
       <p>Target number</p><div className="hole-number">{game.currentHole}</div>
-      <div className="round-line"><span>Round {totalScore(active)}</span><span>{formatToPar(scoreToPar(active))} to par</span></div>
+      <div className="round-line"><span>Current score</span><strong>{totalScore(active)}</strong></div>
     </section>
 
     <section className="dart-state">
