@@ -3,18 +3,19 @@ import {
   RESULTS, bankScore, createGame, formatToPar, scoreToPar, throwDart,
   totalScore, undoDart, winnerNames, type GameMode, type GolfGame, type Stroke,
 } from "./domain/golf";
-import { isCloudConnected, saveCompletedGame } from "./services/golfApi";
+import { bestRecord, recordedHoles, recordToPar, type GameRecord } from "./domain/records";
+import { fetchRecords, isCloudConnected, saveCompletedGame } from "./services/golfApi";
 
-const STORAGE_KEY = "darty-golf-current-game-v1";
+type AppView = "home" | "records";
 
-function loadGame(): GolfGame | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) as GolfGame : null;
-  } catch { return null; }
+function HomeNav({ view, onChange }: { view: AppView; onChange: (view: AppView) => void }) {
+  return <nav className="home-tabs" aria-label="Darty Golf sections">
+    <button className={view === "home" ? "active" : ""} onClick={() => onChange("home")}>Home</button>
+    <button className={view === "records" ? "active" : ""} onClick={() => onChange("records")}>Records</button>
+  </nav>;
 }
 
-function Setup({ onStart }: { onStart: (game: GolfGame) => void }) {
+function Setup({ onStart, onRecords }: { onStart: (game: GolfGame) => void; onRecords: () => void }) {
   const [mode, setMode] = useState<GameMode>("solo");
   const [holes, setHoles] = useState<9 | 18>(18);
   const [names, setNames] = useState([""]);
@@ -26,6 +27,7 @@ function Setup({ onStart }: { onStart: (game: GolfGame) => void }) {
   const canStart = names.length > 0 && names.every((name) => name.trim()) && new Set(names.map((name) => name.trim().toLowerCase())).size === names.length;
 
   return <main className="shell setup-shell">
+    <HomeNav view="home" onChange={(view) => view === "records" && onRecords()} />
     <header className="hero">
       <div className="flag">⛳</div>
       <p className="eyebrow">One dart counts. Every decision matters.</p>
@@ -64,6 +66,75 @@ function Setup({ onStart }: { onStart: (game: GolfGame) => void }) {
   </main>;
 }
 
+function RecordHighlight({ label, record }: { label: string; record: GameRecord | null }) {
+  return <article className="record-highlight">
+    <span>{label}</span>
+    {record ? <>
+      <strong>{record.lowestScore}</strong>
+      <b>{record.winner}</b>
+      <small>{formatToPar(recordToPar(record))} to par</small>
+    </> : <p>No completed rounds yet</p>}
+  </article>;
+}
+
+function Records({ onHome }: { onHome: () => void }) {
+  const [records, setRecords] = useState<GameRecord[] | null>(null);
+  const [error, setError] = useState("");
+  const load = () => {
+    setRecords(null);
+    setError("");
+    fetchRecords().then(setRecords).catch(() => {
+      setRecords([]);
+      setError("Records could not be loaded. Please try again.");
+    });
+  };
+
+  useEffect(load, []);
+
+  const best9 = useMemo(() => bestRecord(records ?? [], 9), [records]);
+  const best18 = useMemo(() => bestRecord(records ?? [], 18), [records]);
+  const date = (value: string) => new Intl.DateTimeFormat("en-NZ", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+
+  return <main className="shell records-shell">
+    <HomeNav view="records" onChange={(view) => view === "home" && onHome()} />
+    <header className="records-header">
+      <p className="eyebrow">Clubhouse history</p>
+      <h1>Records</h1>
+      <p>Lowest score wins. Nine and eighteen-hole records are ranked separately.</p>
+    </header>
+
+    {records === null ? <section className="card records-message"><span className="loader" />Loading records…</section> : <>
+      <section className="record-highlights">
+        <RecordHighlight label="Best front 9" record={best9} />
+        <RecordHighlight label="Best full 18" record={best18} />
+      </section>
+
+      <section className="record-stats">
+        <div><strong>{records.length}</strong><span>Rounds</span></div>
+        <div><strong>{recordedHoles(records)}</strong><span>Player holes</span></div>
+      </section>
+
+      {error && <section className="card records-message error">{error}<button className="text-button" onClick={load}>Try again</button></section>}
+      {!error && records.length === 0 && <section className="card records-message">No rounds yet. Complete a game to set the first record.</section>}
+
+      {records.length > 0 && <section className="recent-records">
+        <div className="section-title"><div><p className="eyebrow">Score archive</p><h2>Past games</h2></div><button className="score-toggle" onClick={load}>Refresh</button></div>
+        {records.map((record) => <article className="game-record card" key={record.id}>
+          <div className="game-record-head">
+            <div><strong>{record.winner}</strong><span>{record.mode === "solo" ? "Solo round" : "Team match"} · {record.holes} holes</span></div>
+            <div><b>{record.lowestScore}</b><small>{formatToPar(recordToPar(record))}</small></div>
+          </div>
+          <div className="record-competitors">
+            {[...record.competitors].sort((a, b) => a.total - b.total).map((competitor) =>
+              <div key={competitor.name}><span>{competitor.name}</span><b>{competitor.total}</b></div>)}
+          </div>
+          <time dateTime={record.completedAt}>{date(record.completedAt)}</time>
+        </article>)}
+      </section>}
+    </>}
+  </main>;
+}
+
 function Scorecard({ game }: { game: GolfGame }) {
   return <div className="scorecard-wrap">
     <table className="scorecard">
@@ -76,7 +147,7 @@ function Scorecard({ game }: { game: GolfGame }) {
   </div>;
 }
 
-function Play({ game, setGame, onNew }: { game: GolfGame; setGame: (game: GolfGame) => void; onNew: () => void }) {
+function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (game: GolfGame) => void; onNew: () => void; onRecords: () => void }) {
   const active = game.competitors[game.currentCompetitor];
   const current = active.darts.at(-1);
   const result = RESULTS.find((item) => item.strokes === current);
@@ -103,7 +174,10 @@ function Play({ game, setGame, onNew }: { game: GolfGame; setGame: (game: GolfGa
         <small>{saveStatus}</small>
       </section>
       <section className="card"><Scorecard game={game} /></section>
-      <button className="primary" onClick={onNew}>Play another round</button>
+      <div className="result-actions">
+        <button className="primary" onClick={onNew}>Play another round</button>
+        <button className="secondary" onClick={onRecords}>View records</button>
+      </div>
     </main>;
   }
 
@@ -137,9 +211,11 @@ function Play({ game, setGame, onNew }: { game: GolfGame; setGame: (game: GolfGa
 }
 
 export default function App() {
-  const [game, setGameState] = useState<GolfGame | null>(() => loadGame());
-  const setGame = (next: GolfGame) => { setGameState(next); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); };
-  const newGame = () => { localStorage.removeItem(STORAGE_KEY); setGameState(null); };
+  const [view, setView] = useState<AppView>("home");
+  const [game, setGame] = useState<GolfGame | null>(null);
+  const goHome = () => { setGame(null); setView("home"); };
+  const goRecords = () => { setGame(null); setView("records"); };
 
-  return game ? <Play game={game} setGame={setGame} onNew={newGame} /> : <Setup onStart={setGame} />;
+  if (game) return <Play game={game} setGame={setGame} onNew={goHome} onRecords={goRecords} />;
+  return view === "records" ? <Records onHome={goHome} /> : <Setup onStart={setGame} onRecords={goRecords} />;
 }
