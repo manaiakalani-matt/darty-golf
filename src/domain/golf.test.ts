@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGame, scoreHole, totalScore, winnerNames } from "./golf";
+import { createGame, scoreHole, totalScore, undoLastScore, winnerNames } from "./golf";
 
 describe("Darty Golf rules", () => {
   it("records the selected final-dart result immediately", () => {
@@ -17,6 +17,19 @@ describe("Darty Golf rules", () => {
     game = scoreHole(game, 4);
     expect(game.currentCompetitor).toBe(0);
     expect(game.currentHole).toBe(2);
+  });
+
+  it("undoes the previous player's score and returns to their turn", () => {
+    let game = createGame("group", ["Red", "Blue"], 9);
+    game = scoreHole(game, 3);
+    game = scoreHole(game, 4);
+    game = undoLastScore(game);
+    expect(game.currentCompetitor).toBe(1);
+    expect(game.currentHole).toBe(1);
+    expect(game.competitors[1].scores[0]).toBeNull();
+    game = undoLastScore(game);
+    expect(game.currentCompetitor).toBe(0);
+    expect(game.competitors[0].scores[0]).toBeNull();
   });
 
   it("calculates totals and winners", () => {
