@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { createGame, scoreHole, totalScore, undoLastScore, winnerNames } from "./golf";
+import { createGame, createGameId, scoreHole, totalScore, undoLastScore, winnerNames } from "./golf";
 
 describe("Darty Golf rules", () => {
+  it("creates a game ID when randomUUID is unavailable", () => {
+    const originalCrypto = globalThis.crypto;
+    Object.defineProperty(globalThis, "crypto", { configurable: true, value: {} });
+    try {
+      expect(createGameId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    } finally {
+      Object.defineProperty(globalThis, "crypto", { configurable: true, value: originalCrypto });
+    }
+  });
+
   it("records the selected final-dart result immediately", () => {
     let game = createGame("solo", ["Peter"]);
     game = scoreHole(game, 5);
