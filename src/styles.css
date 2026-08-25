@@ -69,6 +69,10 @@ input:focus { border-color: #23634d; box-shadow: 0 0 0 3px rgba(35,99,77,.13); }
 .bounce-zone > span:last-child { display: grid; text-align: left; line-height: 1.05; }
 .bounce-zone b { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
 .bounce-zone small { color: #b9c6c0; font-size: .66rem; }
+.round-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding-top: 14px; }
+.round-actions button { min-height: 48px; border-radius: 14px; padding: 12px 16px; font-weight: 800; }
+.exit-button { border: 1px solid #d8b8ad; background: #fff7f2; color: #9a4538; }
+.exit-button:hover, .exit-button:focus-visible { border-color: #9a4538; outline: none; }
 .overlay-card { position: relative; max-height: 46vh; overflow: auto; }
 .scorecard-wrap { overflow-x: auto; }
 .scorecard { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 300px; font-size: .82rem; text-align: center; }
