@@ -118,7 +118,9 @@ function Records({ onHome }: { onHome: () => void }) {
 
   const top9 = useMemo(() => topRecords(records ?? [], 9), [records]);
   const top18 = useMemo(() => topRecords(records ?? [], 18), [records]);
-  const date = (value: string) => new Intl.DateTimeFormat("en-NZ", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  const date = (value: string) => new Intl.DateTimeFormat("en-NZ", {
+    day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+  }).format(new Date(value));
 
   return <main className="shell records-shell">
     <HomeNav view="records" onChange={(view) => view === "home" && onHome()} />
