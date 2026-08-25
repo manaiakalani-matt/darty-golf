@@ -1,0 +1,9 @@
+{
+  "name": "Darty Golf",
+  "short_name": "Darty Golf",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f0df",
+  "theme_color": "#12372a",
+  "icons": [{ "src": "./app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
