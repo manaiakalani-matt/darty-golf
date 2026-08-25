@@ -7,7 +7,7 @@ export const RESULTS = [
   { strokes: 4, short: "L", label: "Large single", detail: "Outer single" },
   { strokes: 5, short: "×", label: "Wrong number", detail: "Hit another number" },
   { strokes: 6, short: "O", label: "Outside board", detail: "Non-scoring board area" },
-  { strokes: 7, short: "B", label: "Bounce / surround", detail: "Did not stay in the board" },
+  { strokes: 7, short: "B", label: "Bounce Out / Off The Board", detail: "Bounced out or missed the board completely" },
 ] as const;
 
 export type Stroke = (typeof RESULTS)[number]["strokes"];
