@@ -57,10 +57,10 @@ input:focus { border-color: #23634d; box-shadow: 0 0 0 3px rgba(35,99,77,.13); }
 .board-bull { fill: #bd493c; stroke: #d8cfba; stroke-width: 1.5; }
 .dartboard-segment text { text-anchor: middle; dominant-baseline: middle; pointer-events: none; fill: #fffaf0; }
 .dartboard-segment .light + text, .svg-zone:has(.board-outside) text { fill: #17362b; }
-.board-number { font-family: "Fraunces", Georgia, serif; font-size: 25px; font-weight: 900; }
-.board-number.ring { font-size: 19px; }
-.board-number.outside { font-size: 24px; }
-.board-number.adjacent { font-size: 23px; }
+.board-number { font-family: "Fraunces", Georgia, serif; font-size: 20px; font-weight: 900; }
+.board-number.ring { font-size: 14px; }
+.board-number.outside { font-size: 18px; }
+.board-number.adjacent { font-size: 18px; }
 .board-number.adjacent.light { fill: #17362b; }
 .bounce-zone { justify-self: center; min-width: 210px; border: 0; border-radius: 99px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 9px 17px; background: #263c35; color: #fffced; box-shadow: 0 3px 0 #142a22; }
 .bounce-zone:hover:not(:disabled), .bounce-zone:focus-visible { outline: 3px solid #efc24f; outline-offset: 2px; }
