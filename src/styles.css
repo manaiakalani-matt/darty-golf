@@ -24,7 +24,7 @@ input:focus { border-color: #23634d; box-shadow: 0 0 0 3px rgba(35,99,77,.13); }
 .primary, .secondary { min-height: 50px; border-radius: 14px; padding: 13px 18px; font-weight: 800; border: 0; }
 .primary { width: 100%; background: #12372a; color: #fffaf0; margin-top: 17px; box-shadow: 0 6px 0 #08251b; }
 .primary:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 3px 0 #08251b; }
-.primary:disabled, .secondary:disabled, .dartboard-picker button:disabled { opacity: .42; cursor: default; }
+.primary:disabled, .secondary:disabled { opacity: .42; cursor: default; }
 .secondary { background: #e7e1cf; color: #17362b; }
 .text-button { border: 0; background: transparent; color: #23634d; font-weight: 700; padding: 11px 2px 0; }
 .text-button.danger { color: #a34c3e; margin-left: 16px; }
@@ -39,21 +39,15 @@ input:focus { border-color: #23634d; box-shadow: 0 0 0 3px rgba(35,99,77,.13); }
 .target-card p { margin: 0; text-transform: uppercase; letter-spacing: .15em; font-size: .7rem; opacity: .72; font-weight: 700; }
 .hole-number { font-family: "Fraunces", Georgia, serif; font-size: 6rem; line-height: 1; padding: 4px 0 9px; color: #efc24f; }
 .round-line { display: flex; justify-content: space-between; font-size: .83rem; opacity: .8; border-top: 1px solid rgba(255,255,255,.16); padding-top: 12px; }
-.dart-state { min-height: 98px; display: flex; align-items: center; gap: 15px; padding: 18px 2px 10px; }
-.dart-state strong { font-size: 1.06rem; }
-.dart-state p { margin: 4px 0 0; color: #65796f; font-size: .86rem; }
-.dart-dots { display: flex; gap: 5px; }
-.dart-dots span { display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid #c3c5b9; color: #92988e; border-radius: 50%; font-weight: 800; }
-.dart-dots span.used { border-color: #efc24f; background: #efc24f; color: #17362b; }
+.score-prompt { text-align: center; padding: 20px 2px 12px; }
+.score-prompt strong { font-size: 1.06rem; }
+.score-prompt p { margin: 4px 0 0; color: #65796f; font-size: .86rem; }
 .dartboard-picker { display: grid; gap: 7px; padding: 10px 12px 12px; border: 1px solid #d9d4c3; border-radius: 26px; background: rgba(255,255,255,.62); box-shadow: 0 12px 30px rgba(18,55,42,.08); overflow: hidden; }
 .dartboard-segment { display: block; width: min(100%,500px); height: auto; margin: -5px auto -13px; overflow: visible; }
 .svg-zone { cursor: pointer; }
 .svg-zone path { stroke: #d8cfba; stroke-width: 1.5; vector-effect: non-scaling-stroke; transition: filter .15s ease, stroke .15s ease, stroke-width .15s ease; }
 .svg-zone:hover path, .svg-zone:focus-visible path { filter: brightness(1.13); stroke: #efc24f; stroke-width: 4; }
 .svg-zone:focus { outline: none; }
-.svg-zone.selected path { stroke: #efc24f; stroke-width: 6; filter: brightness(1.08); }
-.svg-zone.disabled { opacity: .42; cursor: default; }
-.svg-zone.disabled:hover path { filter: none; stroke: #d8cfba; stroke-width: 1.5; }
 .board-single.dark { fill: #252a27; }
 .board-single.light { fill: #e9dfc9; }
 .board-ring.red { fill: #bd493c; }
@@ -70,14 +64,11 @@ input:focus { border-color: #23634d; box-shadow: 0 0 0 3px rgba(35,99,77,.13); }
 .board-number.adjacent.light { fill: #17362b; }
 .bounce-zone { justify-self: center; min-width: 210px; border: 0; border-radius: 99px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 9px 17px; background: #263c35; color: #fffced; box-shadow: 0 3px 0 #142a22; }
 .bounce-zone:hover:not(:disabled), .bounce-zone:focus-visible { outline: 3px solid #efc24f; outline-offset: 2px; }
-.bounce-zone.selected { outline: 4px solid #efc24f; outline-offset: 2px; }
 .bounce-arrow { color: #efc24f; font-size: 1.45rem; }
 .bounce-zone .zone-score { font-family: "Fraunces", Georgia, serif; color: #efc24f; font-size: 1.8rem; line-height: 1; }
 .bounce-zone > span:last-child { display: grid; text-align: left; line-height: 1.05; }
 .bounce-zone b { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
 .bounce-zone small { color: #b9c6c0; font-size: .66rem; }
-.play-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: .8fr 1.2fr; gap: 9px; padding: 14px 0 max(4px,env(safe-area-inset-bottom)); background: linear-gradient(transparent 0,#f4f0df 22%); }
-.play-actions .primary { margin-top: 0; }
 .overlay-card { position: relative; max-height: 46vh; overflow: auto; }
 .scorecard-wrap { overflow-x: auto; }
 .scorecard { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 300px; font-size: .82rem; text-align: center; }
