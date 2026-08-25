@@ -45,8 +45,16 @@ export const winnerNames = (game: GolfGame): string[] => {
   return game.competitors.filter((competitor) => totalScore(competitor) === lowest).map((competitor) => competitor.name);
 };
 
+export const createGameId = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
+};
+
 export const createGame = (mode: GameMode, names: string[], holes: 9 | 18 = 18): GolfGame => ({
-  id: crypto.randomUUID(),
+  id: createGameId(),
   mode,
   holes,
   createdAt: new Date().toISOString(),
