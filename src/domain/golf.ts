@@ -45,6 +45,27 @@ export const winnerNames = (game: GolfGame): string[] => {
   return game.competitors.filter((competitor) => totalScore(competitor) === lowest).map((competitor) => competitor.name);
 };
 
+const isStroke = (value: unknown): value is Stroke =>
+  typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 7;
+
+/** Checks that data read back from storage is a playable game, so a corrupt save can never crash the app. */
+export const isGolfGame = (value: unknown): value is GolfGame => {
+  if (!value || typeof value !== "object") return false;
+  const game = value as Partial<GolfGame>;
+  if (typeof game.id !== "string" || (game.mode !== "solo" && game.mode !== "group")) return false;
+  if (game.holes !== 9 && game.holes !== 18) return false;
+  if (typeof game.createdAt !== "string" || (game.completedAt !== null && typeof game.completedAt !== "string")) return false;
+  if (!Array.isArray(game.competitors) || game.competitors.length < 1 || game.competitors.length > 8) return false;
+  if (typeof game.currentHole !== "number" || game.currentHole < 1 || game.currentHole > game.holes) return false;
+  if (typeof game.currentCompetitor !== "number" || game.currentCompetitor < 0 || game.currentCompetitor >= game.competitors.length) return false;
+  return game.competitors.every((competitor) => Boolean(competitor)
+    && typeof competitor.id === "string"
+    && typeof competitor.name === "string"
+    && Array.isArray(competitor.scores)
+    && competitor.scores.length === game.holes
+    && competitor.scores.every((score) => score === null || isStroke(score)));
+};
+
 export const createGameId = (): string => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {

@@ -5,6 +5,7 @@ import {
 } from "./domain/golf";
 import { topRecords, type GameRecord } from "./domain/records";
 import { fetchRecords, isCloudConnected, saveCompletedGame } from "./services/golfApi";
+import { addToOutbox, flushOutbox, loadActiveRound, loadOutbox, removeFromOutbox, saveActiveRound } from "./services/localStore";
 
 type AppView = "home" | "records";
 
@@ -15,7 +16,22 @@ function HomeNav({ view, onChange }: { view: AppView; onChange: (view: AppView) 
   </nav>;
 }
 
-function Setup({ onStart, onRecords }: { onStart: (game: GolfGame) => void; onRecords: () => void }) {
+function ResumeCard({ round, onResume, onDiscard }: { round: GolfGame; onResume: () => void; onDiscard: () => void }) {
+  const players = round.competitors.map((competitor) => competitor.name).join(", ");
+  const up = round.competitors[round.currentCompetitor];
+  return <section className="card resume-card" aria-labelledby="resume-title">
+    <p className="eyebrow">Round in progress</p>
+    <h2 id="resume-title">Pick up where you left off?</h2>
+    <p className="resume-detail"><strong>{players}</strong><span>Hole {round.currentHole} of {round.holes}{round.mode === "group" ? ` · ${up.name} to throw` : ""}</span></p>
+    <button className="primary" onClick={onResume}>Resume round</button>
+    <button className="text-button danger" onClick={() => window.confirm("Discard this unfinished round? Its scores will be lost.") && onDiscard()}>Discard and start fresh</button>
+  </section>;
+}
+
+function Setup({ onStart, onRecords, savedRound, onResume, onDiscard }: {
+  onStart: (game: GolfGame) => void; onRecords: () => void;
+  savedRound: GolfGame | null; onResume: () => void; onDiscard: () => void;
+}) {
   const [mode, setMode] = useState<GameMode>("solo");
   const [holes, setHoles] = useState<9 | 18>(18);
   const [names, setNames] = useState([""]);
@@ -35,8 +51,10 @@ function Setup({ onStart, onRecords }: { onStart: (game: GolfGame) => void; onRe
       <p>Play holes 1–{holes}. Lowest score wins.</p>
     </header>
 
+    {savedRound && <ResumeCard round={savedRound} onResume={onResume} onDiscard={onDiscard} />}
+
     <section className="card">
-      <h2>Choose your round</h2>
+      <h2>{savedRound ? "Or start a new round" : "Choose your round"}</h2>
       <div className="segmented" aria-label="Game mode">
         <button className={mode === "solo" ? "active" : ""} onClick={() => chooseMode("solo")}>Solo</button>
         <button className={mode === "group" ? "active" : ""} onClick={() => chooseMode("group")}>Group</button>
@@ -49,7 +67,7 @@ function Setup({ onStart, onRecords }: { onStart: (game: GolfGame) => void; onRe
       <div className="names">
         {names.map((name, index) => <label key={index}>
           {mode === "solo" ? "Player name" : `Player ${index + 1}`}
-          <input value={name} maxLength={28} autoFocus={index === 0} placeholder={mode === "solo" ? "Your name" : `Player ${index + 1} name`}
+          <input value={name} maxLength={28} autoFocus={index === 0 && !savedRound} placeholder={mode === "solo" ? "Your name" : `Player ${index + 1} name`}
             onChange={(event) => setNames(names.map((old, i) => i === index ? event.target.value : old))} />
         </label>)}
       </div>
@@ -105,13 +123,18 @@ function Records({ onHome }: { onHome: () => void }) {
   const [records, setRecords] = useState<GameRecord[] | null>(null);
   const [selected, setSelected] = useState<GameRecord | null>(null);
   const [error, setError] = useState("");
+  const [waiting, setWaiting] = useState(0);
   const load = () => {
     setRecords(null);
     setError("");
-    fetchRecords().then(setRecords).catch(() => {
-      setRecords([]);
-      setError("Records could not be loaded. Please try again.");
-    });
+    // Upload rounds waiting on this phone first, so a just-finished game shows up in the records.
+    flushOutbox(saveCompletedGame)
+      .then((remaining) => { setWaiting(remaining); return fetchRecords(); })
+      .then(setRecords)
+      .catch(() => {
+        setRecords([]);
+        setError("Records could not be loaded. Please try again.");
+      });
   };
 
   useEffect(load, []);
@@ -136,6 +159,7 @@ function Records({ onHome }: { onHome: () => void }) {
         <TopRounds title="Top 5 · Full 18" records={top18} onSelect={setSelected} />
       </section>
 
+      {waiting > 0 && <section className="card records-message">{waiting === 1 ? "1 round is" : `${waiting} rounds are`} waiting on this phone to upload. They'll appear here once you're back online.</section>}
       {error && <section className="card records-message error">{error}<button className="text-button" onClick={load}>Try again</button></section>}
       {!error && records.length === 0 && <section className="card records-message">No rounds yet. Complete a game to set the first record.</section>}
 
@@ -192,7 +216,7 @@ function DartboardSegment({ hole, onScore }: { hole: number; onScore: (score: St
     onClick={() => activate(score)} onKeyDown={(event) => keyActivate(event, score)}>{children}</g>;
 
   return <section className="dartboard-picker" aria-label="Where did the dart land?">
-    <svg className="dartboard-segment" viewBox="0 0 360 310" role="img" aria-label={`Dartboard segment for target ${hole}`}>
+    <svg className="dartboard-segment" viewBox="0 0 360 310" role="group" aria-label={`Dartboard segment for target ${hole}`}>
       <defs>
         <filter id="board-shadow" x="-30%" y="-20%" width="160%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#09251b" floodOpacity=".22" /></filter>
       </defs>
@@ -230,12 +254,20 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
 
   useEffect(() => {
     if (!game.completedAt) return;
+    const keptOnDevice = loadOutbox().some((queued) => queued.id === game.id);
+    const offlineMessage = keptOnDevice
+      ? "Couldn't reach the clubhouse. This round is kept on this phone and will upload automatically."
+      : "This round couldn't be saved. Screenshot the scorecard to keep a copy.";
     if (!isCloudConnected()) {
-      setSaveStatus("Saved on this device");
+      setSaveStatus(keptOnDevice ? "Saved on this phone" : offlineMessage);
       return;
     }
-    setSaveStatus("Saving…");
-    saveCompletedGame(game).then(() => setSaveStatus("Round saved")).catch(() => setSaveStatus("Saved on this device"));
+    let cancelled = false;
+    setSaveStatus("Saving to the clubhouse…");
+    saveCompletedGame(game)
+      .then(() => { removeFromOutbox(game.id); if (!cancelled) setSaveStatus("Round saved to the clubhouse ✓"); })
+      .catch(() => { if (!cancelled) setSaveStatus(offlineMessage); });
+    return () => { cancelled = true; };
   }, [game.completedAt]);
 
   if (game.completedAt) {
@@ -283,9 +315,44 @@ function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (g
 export default function App() {
   const [view, setView] = useState<AppView>("home");
   const [game, setGame] = useState<GolfGame | null>(null);
-  const goHome = () => { setGame(null); setView("home"); };
-  const goRecords = () => { setGame(null); setView("records"); };
+  const [savedRound, setSavedRound] = useState<GolfGame | null>(() => loadActiveRound());
 
-  if (game) return <Play game={game} setGame={setGame} onNew={goHome} onRecords={goRecords} />;
-  return view === "records" ? <Records onHome={goHome} /> : <Setup onStart={setGame} onRecords={goRecords} />;
+  // Upload any rounds that finished while offline: on launch and whenever the connection returns.
+  useEffect(() => {
+    if (!isCloudConnected()) return;
+    const flush = () => { void flushOutbox(saveCompletedGame); };
+    flush();
+    window.addEventListener("online", flush);
+    return () => window.removeEventListener("online", flush);
+  }, []);
+
+  // Every score is saved to the device immediately; a finished round moves to the upload outbox.
+  const updateGame = (next: GolfGame) => {
+    setGame(next);
+    if (next.completedAt) {
+      addToOutbox(next);
+      saveActiveRound(null);
+      setSavedRound(null);
+    } else {
+      saveActiveRound(next);
+      setSavedRound(next);
+    }
+  };
+  const startGame = (next: GolfGame) => {
+    if (savedRound && !window.confirm("Starting a new round will discard your unfinished one. Continue?")) return;
+    updateGame(next);
+  };
+  const discardSaved = () => { saveActiveRound(null); setSavedRound(null); };
+  const leaveGame = (nextView: AppView) => {
+    // Leaving mid-round from the Exit button means the round is abandoned.
+    if (game && !game.completedAt) discardSaved();
+    setGame(null);
+    setView(nextView);
+  };
+
+  if (game) return <Play game={game} setGame={updateGame} onNew={() => leaveGame("home")} onRecords={() => leaveGame("records")} />;
+  return view === "records"
+    ? <Records onHome={() => setView("home")} />
+    : <Setup onStart={startGame} onRecords={() => setView("records")}
+      savedRound={savedRound} onResume={() => savedRound && setGame(savedRound)} onDiscard={discardSaved} />;
 }

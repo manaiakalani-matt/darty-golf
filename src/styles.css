@@ -28,6 +28,12 @@ input:focus { border-color: #23634d; box-shadow: 0 0 0 3px rgba(35,99,77,.13); }
 .secondary { background: #e7e1cf; color: #17362b; }
 .text-button { border: 0; background: transparent; color: #23634d; font-weight: 700; padding: 11px 2px 0; }
 .text-button.danger { color: #a34c3e; margin-left: 16px; }
+.resume-card { border: 2px solid #efc24f; background: #fffaf0; }
+.resume-card h2 { margin: 4px 0 12px; }
+.resume-detail { display: grid; gap: 3px; margin: 0; padding: 12px 14px; border-radius: 12px; background: #f4f0df; }
+.resume-detail strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resume-detail span { color: #5a6f66; font-size: .88rem; }
+.resume-card .text-button.danger { display: block; margin: 4px auto 0; }
 .rules p { color: #5a6f66; line-height: 1.5; }
 .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .rule-grid div { display: flex; gap: 9px; align-items: center; background: #f4f0df; border-radius: 10px; padding: 8px 10px; font-size: .82rem; }

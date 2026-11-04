@@ -10,3 +10,12 @@ The Darty Golf spreadsheet stores one row per completed game and one row per com
 6. Put the `/exec` URL into `DARTY_GOLF_API_URL` in `src/services/golfApi.ts`.
 
 The live app still works offline before this connection is made; its current round is saved on the scoring device.
+
+## Updating the script
+
+GitHub does not deploy this script. When `Code.gs` changes:
+
+1. Open the sheet, then **Extensions → Apps Script**, and replace the code with the new `Code.gs`.
+2. Choose **Deploy → Manage deployments**, edit the existing web-app deployment, set **Version** to **New version**, and deploy.
+
+Editing the existing deployment keeps the same `/exec` URL, so the app needs no change. Choosing **New deployment** instead would create a new URL.
