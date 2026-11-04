@@ -19,7 +19,9 @@ const records: GameRecord[] = [
   round("r4", 4, 9, [["Daz", nine(2, 2, 2, 2, 2, 2, 2, 2, 2)]]),
 ];
 
-const profileOf = (name: string) => buildProfiles(records).find((p) => p.key === name.toLowerCase())!;
+// These made-up players are all different people, so no nicknames apply.
+const build = (list: GameRecord[]) => buildProfiles(list, {});
+const profileOf = (name: string) => build(records).find((p) => p.key === name.toLowerCase())!;
 
 describe("Player profiles", () => {
   it("merges the same name typed with different capitals or spaces", () => {
@@ -28,11 +30,16 @@ describe("Player profiles", () => {
     expect(daz.name).toBe("Daz");
   });
 
+  it("uses the club's nickname list by default", () => {
+    const keys = buildProfiles([round("c", 5, 9, [["Dazza", nine(3, 3, 3, 3, 3, 3, 3, 3, 3)], ["Zaccyboi18", nine(3, 3, 3, 3, 3, 3, 3, 3, 3)]])]).map((p) => p.key);
+    expect(keys).toEqual(["darren", "zac"]);
+  });
+
   it("merges nicknames listed for the same person", () => {
     const merged = buildProfiles([
       round("a", 1, 9, [["Zaccyboi18", nine(3, 3, 3, 3, 3, 3, 3, 3, 3)]]),
       round("b", 2, 9, [["Zac", nine(2, 2, 2, 2, 2, 2, 2, 2, 2)], ["Daz", nine(3, 3, 3, 3, 3, 3, 3, 3, 3)]]),
-    ]);
+    ], { zaccyboi18: "zac" });
     const zac = merged.find((p) => p.key === "zac")!;
     expect(merged.map((p) => p.key).sort()).toEqual(["daz", "zac"]);
     expect(zac.roundsPlayed).toBe(2);
@@ -73,7 +80,7 @@ describe("Player profiles", () => {
   });
 
   it("ranks players with enough rounds by average per hole", () => {
-    const { ranked, unranked } = clubhouseRankings(buildProfiles(records));
+    const { ranked, unranked } = clubhouseRankings(build(records));
     expect(ranked.map((p) => p.name)).toEqual(["Daz", "Darren"]);
     expect(unranked.map((p) => p.name)).toEqual(["Zac"]);
   });

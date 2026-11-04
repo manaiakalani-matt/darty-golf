@@ -16,12 +16,13 @@ import type { GameRecord } from "./records";
  */
 export const NICKNAMES: Record<string, string> = {
   zaccyboi18: "zac",
-  dazza: "daz",
+  daz: "darren",
+  dazza: "darren",
 };
 
-export const playerKey = (name: string): string => {
+export const playerKey = (name: string, nicknames: Record<string, string> = NICKNAMES): string => {
   const key = name.trim().toLowerCase();
-  return NICKNAMES[key] ?? key;
+  return nicknames[key] ?? key;
 };
 
 export interface RoundLine {
@@ -83,14 +84,15 @@ interface Tally {
   h2h: Map<string, HeadToHead>;
 }
 
-export const buildProfiles = (records: GameRecord[]): PlayerProfile[] => {
+export const buildProfiles = (records: GameRecord[], nicknames: Record<string, string> = NICKNAMES): PlayerProfile[] => {
+  const keyOf = (name: string) => playerKey(name, nicknames);
   const byKey = new Map<string, Tally>();
   const ordered = [...records].sort((a, b) => Date.parse(a.completedAt) - Date.parse(b.completedAt));
 
   for (const record of ordered) {
     const totals = record.competitors.map((competitor) => competitor.total);
     for (const competitor of record.competitors) {
-      const key = playerKey(competitor.name);
+      const key = keyOf(competitor.name);
       if (!key) continue;
       const entry: Tally = byKey.get(key) ?? { names: [], rounds: [], holeScores: new Map(), scores: [], h2h: new Map() };
       byKey.set(key, entry);
@@ -113,7 +115,7 @@ export const buildProfiles = (records: GameRecord[]): PlayerProfile[] => {
       });
 
       for (const other of record.competitors) {
-        const otherKey = playerKey(other.name);
+        const otherKey = keyOf(other.name);
         if (otherKey === key) continue;
         const h2h = entry.h2h.get(otherKey) ?? { opponentKey: otherKey, opponent: other.name.trim(), wins: 0, losses: 0, ties: 0 };
         h2h.opponent = other.name.trim();
