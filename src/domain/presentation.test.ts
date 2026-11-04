@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGame, holeOutcome, roundAwards, scoreHole, splitTotals, stakesLine, standings, type GolfGame, type Stroke } from "./golf";
+import { createGame, holeOutcome, isBackToBackAce, roundAwards, scoreHole, splitTotals, stakesLine, standings, type GolfGame, type Stroke } from "./golf";
 import { assignColors, initialOf, PLAYER_COLORS } from "./players";
 
 const play = (game: GolfGame, strokes: Stroke[]): GolfGame => strokes.reduce(scoreHole, game);
@@ -52,6 +52,20 @@ describe("Round awards", () => {
       { title: "Most birdies", winners: ["Daz"], detail: "2 birdies" },
       { title: "Bounce-out champ", winners: ["Zac"], detail: "2 bounce-outs" },
     ]);
+  });
+
+  it("crowns the leader instead of listing them when holes in one are common", () => {
+    // Daz: 1,1,1  Zac: 1,4,4
+    const game = play(createGame("group", ["Daz", "Zac"], 9), [1, 1, 1, 4, 1, 4]);
+    const award = roundAwards(game).find((entry) => entry.title === "Most holes in one");
+    expect(award).toEqual({ title: "Most holes in one", winners: ["Daz"], detail: "3 holes in one" });
+    expect(roundAwards(game).some((entry) => entry.title.startsWith("Hole"))).toBe(false);
+  });
+
+  it("spots back-to-back holes in one", () => {
+    expect(isBackToBackAce([1, 1, null], 1)).toBe(true);
+    expect(isBackToBackAce([4, 1, null], 1)).toBe(false);
+    expect(isBackToBackAce([1, null], 0)).toBe(false);
   });
 
   it("skips an award when everyone ties for it", () => {

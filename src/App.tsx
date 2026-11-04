@@ -3,7 +3,9 @@ import { RESULTS, createGame, type GameMode, type GolfGame } from "./domain/golf
 import { assignColors, initialOf } from "./domain/players";
 import { topRecords, type GameRecord } from "./domain/records";
 import { Play } from "./components/Play";
+import { ClubhouseRankings, PlayerProfileView } from "./components/Players";
 import { Scorecard } from "./components/Scorecard";
+import { buildProfiles } from "./domain/profiles";
 import { fetchRecords, isCloudConnected, saveCompletedGame } from "./services/golfApi";
 import {
   addToOutbox, flushOutbox, loadActiveRound, loadRecentPlayers, rememberPlayers, saveActiveRound,
@@ -153,6 +155,7 @@ function RecordScoreSheet({ record, onClose }: { record: GameRecord; onClose: ()
 function Records({ onHome }: { onHome: () => void }) {
   const [records, setRecords] = useState<GameRecord[] | null>(null);
   const [selected, setSelected] = useState<GameRecord | null>(null);
+  const [profileKey, setProfileKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiting, setWaiting] = useState(0);
   const load = () => {
@@ -172,6 +175,15 @@ function Records({ onHome }: { onHome: () => void }) {
 
   const top9 = useMemo(() => topRecords(records ?? [], 9), [records]);
   const top18 = useMemo(() => topRecords(records ?? [], 18), [records]);
+  const profiles = useMemo(() => buildProfiles(records ?? []), [records]);
+  const profile = profiles.find((entry) => entry.key === profileKey) ?? null;
+  const scoreSheet = selected && <RecordScoreSheet record={selected} onClose={() => setSelected(null)} />;
+
+  if (profile) return <>
+    <PlayerProfileView profile={profile} onBack={() => setProfileKey(null)}
+      onOpenRound={(id) => setSelected((records ?? []).find((record) => record.id === id) ?? null)} />
+    {scoreSheet}
+  </>;
   const date = (value: string) => new Intl.DateTimeFormat("en-NZ", {
     day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
   }).format(new Date(value));
@@ -181,7 +193,7 @@ function Records({ onHome }: { onHome: () => void }) {
     <header className="records-header">
       <p className="eyebrow">Clubhouse history</p>
       <h1>Records</h1>
-      <p>Lowest score wins. Tap any round to see its full score sheet.</p>
+      <p>Lowest score wins. Tap a player for their stats, or any round for its score sheet.</p>
     </header>
 
     {records === null ? <section className="card records-message"><span className="loader" />Loading records…</section> : <>
@@ -189,6 +201,8 @@ function Records({ onHome }: { onHome: () => void }) {
         <TopRounds title="Top 5 · Front 9" records={top9} onSelect={setSelected} />
         <TopRounds title="Top 5 · Full 18" records={top18} onSelect={setSelected} />
       </section>
+
+      <ClubhouseRankings profiles={profiles} onSelect={setProfileKey} />
 
       {waiting > 0 && <section className="card records-message">{waiting === 1 ? "1 round is" : `${waiting} rounds are`} waiting on this phone to upload. They'll appear here once you're back online.</section>}
       {error && <section className="card records-message error">{error}<button className="text-button" onClick={load}>Try again</button></section>}
@@ -202,7 +216,7 @@ function Records({ onHome }: { onHome: () => void }) {
         </button>)}
       </section>}
     </>}
-    {selected && <RecordScoreSheet record={selected} onClose={() => setSelected(null)} />}
+    {scoreSheet}
   </main>;
 }
 

@@ -100,6 +100,10 @@ export const stakesLine = (game: GolfGame, index: number): string => {
   return `${mine.toPar - best} behind ${leaderName} with ${playing}`;
 };
 
+/** True when this hole and the player's previous one were both holes in one. */
+export const isBackToBackAce = (scores: Array<Stroke | null>, holeIndex: number): boolean =>
+  holeIndex > 0 && scores[holeIndex] === 1 && scores[holeIndex - 1] === 1;
+
 export interface Award {
   title: string;
   winners: string[];
@@ -115,7 +119,8 @@ export const roundAwards = (game: GolfGame): Award[] => {
   const aces = game.competitors.flatMap((competitor) => competitor.scores
     .map((score, hole) => (score === 1 ? `${competitor.name} on ${hole + 1}` : null))
     .filter((entry): entry is string => entry !== null));
-  if (aces.length) awards.push({ title: aces.length > 1 ? "Holes in one" : "Hole in one", winners: [], detail: aces.join(", ") });
+  // At this club players aim for the double, so holes in one are common: list a couple, otherwise crown the leader.
+  if (aces.length > 0 && aces.length <= 2) awards.push({ title: aces.length > 1 ? "Holes in one" : "Hole in one", winners: [], detail: aces.join(", ") });
 
   const mostOf = (title: string, test: (score: Stroke) => boolean, unit: (n: number) => string) => {
     const tallies = game.competitors.map((competitor) => ({ name: competitor.name, n: count(competitor, test) }));
@@ -125,6 +130,7 @@ export const roundAwards = (game: GolfGame): Award[] => {
     if (game.competitors.length > 1 && winners.length === game.competitors.length) return; // everyone tied: no award
     awards.push({ title, winners, detail: unit(best) });
   };
+  if (aces.length > 2) mostOf("Most holes in one", (score) => score === 1, (n) => `${n} hole${n === 1 ? "" : "s"} in one`);
   mostOf("Most birdies", (score) => score === 2, (n) => `${n} birdie${n === 1 ? "" : "s"}`);
   mostOf("Par machine", (score) => score === 3, (n) => `${n} par${n === 1 ? "" : "s"}`);
   mostOf("Bounce-out champ", (score) => score === 7, (n) => `${n} bounce-out${n === 1 ? "" : "s"}`);

@@ -12,7 +12,10 @@ A mobile-first scorer for the darts game Golf. Play holes 1–18 (or a quick fro
 - Live scorecard, undo, winners and ties
 - **Never loses a round:** every throw is saved on the phone, so a reload or crash offers "Resume round"
 - **Never loses a result:** finished rounds wait on the phone until the Google Sheet confirms them, then upload automatically when the connection returns
-- Records page with top-5 leaderboards for Front 9 and Full 18
+- Darts that land where you tap, golf call-outs, live standings and player colours
+- Golf-style scorecard (birdie circles, bogey squares, Out/In) and end-of-round awards
+- Share a result as an image for the group chat
+- Records page with top-5 leaderboards, clubhouse rankings, and player profiles (bests, form, best and nemesis holes, head-to-head)
 - Cloudflare Worker + D1 database backend that checks every game before saving it
 - App deploys to GitHub Pages, and the API to Cloudflare, automatically on push to `main`
 

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  RESULTS, completedHoles, formatToPar, holeOutcome, roundAwards, scoreHole, scoreToPar, stakesLine, standings,
+  RESULTS, completedHoles, formatToPar, holeOutcome, isBackToBackAce, roundAwards, scoreHole, scoreToPar, stakesLine, standings,
   totalScore, undoLastScore, winnerNames, type GolfGame, type HoleTone, type Stroke,
 } from "../domain/golf";
 import { assignColors, initialOf, type PlayerColor } from "../domain/players";
 import { isCloudConnected, saveCompletedGame } from "../services/golfApi";
 import { loadOutbox, removeFromOutbox } from "../services/localStore";
+import { canvasToBlob, drawResultCard } from "../ui/shareCard";
 import { playThrow, setSoundEnabled, soundEnabled } from "../ui/sound";
 import { Dartboard, type BoardPoint } from "./Dartboard";
 import { Scorecard } from "./Scorecard";
@@ -15,7 +16,7 @@ const LANDING_MS = 650;
 const CALLOUT_MS = 1700;
 const UNDO_MS = 4500;
 
-interface Callout { key: number; name: string; tone: HoleTone; detail: string }
+interface Callout { key: number; name: string; tone: HoleTone; detail: string; celebrate: boolean }
 interface UndoNotice { key: number; text: string }
 
 function LiveLeaderboard({ game, colors }: { game: GolfGame; colors: PlayerColor[] }) {
@@ -88,8 +89,53 @@ function SoundToggle() {
   </button>;
 }
 
+/** Preview of the result image, with the phone's share sheet when it has one and a save fallback everywhere. */
+function ShareSheet({ game, colors, onClose }: { game: GolfGame; colors: PlayerColor[]; onClose: () => void }) {
+  const [image, setImage] = useState<{ url: string; file: File } | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let url = "";
+    drawResultCard(game, colors)
+      .then(canvasToBlob)
+      .then((blob) => {
+        url = URL.createObjectURL(blob);
+        setImage({ url, file: new File([blob], "darty-golf-result.png", { type: "image/png" }) });
+      })
+      .catch(() => setError("The image couldn't be made on this phone."));
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [game.id]);
+
+  const nav = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+  const canShareFiles = Boolean(image && typeof nav.share === "function" && typeof nav.canShare === "function" && nav.canShare && nav.canShare({ files: [image.file] }));
+  const share = () => {
+    if (!image) return;
+    nav.share({ files: [image.file], title: "Darty Golf", text: `${winnerNames(game).join(" & ")} wins Darty Golf` })
+      .catch(() => { /* Cancelled: nothing to do. */ });
+  };
+
+  return <div className="score-sheet-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="score-sheet-modal card share-sheet" role="dialog" aria-modal="true" aria-labelledby="share-title">
+      <div className="score-sheet-head">
+        <div><p className="eyebrow">For the group chat</p><h2 id="share-title">Share result</h2></div>
+        <button className="score-toggle" onClick={onClose}>Close</button>
+      </div>
+      {error ? <p className="records-message error">{error}</p>
+        : !image ? <p className="records-message"><span className="loader" />Drawing the scorecard…</p>
+          : <>
+            <img className="share-preview" src={image.url} alt={`Result card: ${winnerNames(game).join(" and ")} wins`} />
+            <div className="share-actions">
+              {canShareFiles && <button className="primary" onClick={share}>Share</button>}
+              <a className={canShareFiles ? "secondary share-save" : "primary share-save"} href={image.url} download="darty-golf-result.png">Save image</a>
+            </div>
+            <p className="share-hint">On an iPhone you can also press and hold the picture to save it.</p>
+          </>}
+    </section>
+  </div>;
+}
+
 function Results({ game, colors, onNew, onRecords }: { game: GolfGame; colors: PlayerColor[]; onNew: () => void; onRecords: () => void }) {
   const [saveStatus, setSaveStatus] = useState("");
+  const [sharing, setSharing] = useState(false);
   const winners = winnerNames(game);
   const table = standings(game);
   const awards = roundAwards(game);
@@ -147,9 +193,11 @@ function Results({ game, colors, onNew, onRecords }: { game: GolfGame; colors: P
       <Scorecard holes={game.holes} players={game.competitors.map((competitor, i) => ({ key: competitor.id, name: competitor.name, scores: competitor.scores, color: colors[i] }))} />
     </section>
     <div className="result-actions">
-      <button className="primary" onClick={onNew}>Play another round</button>
+      <button className="primary share-button" onClick={() => setSharing(true)}>Share result</button>
+      <button className="secondary" onClick={onNew}>Play another round</button>
       <button className="secondary" onClick={onRecords}>View records</button>
     </div>
+    {sharing && <ShareSheet game={game} colors={colors} onClose={() => setSharing(false)} />}
   </main>;
 }
 
@@ -176,6 +224,7 @@ export function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setG
     const result = RESULTS.find((entry) => entry.strokes === score)!;
     const next = scoreHole(game, score);
     const nowToPar = scoreToPar(next.competitors[game.currentCompetitor]);
+    const backToBack = isBackToBackAce(next.competitors[game.currentCompetitor].scores, game.currentHole - 1);
     const key = Date.now();
 
     playThrow(score === 1 ? "ace" : score === 7 ? "bounce" : "hit");
@@ -183,7 +232,8 @@ export function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setG
     setDart(point);
     setUndo(null);
     setCallout({
-      key, name: outcome.name, tone: outcome.tone,
+      // Holes in one are common here (players aim for the double), so confetti is saved for back-to-back ones.
+      key, name: backToBack ? "Back-to-back aces" : outcome.name, tone: outcome.tone, celebrate: backToBack,
       detail: `${score === 7 ? "Bounced out" : result.label} · ${group ? `${active.name} ` : ""}${formatToPar(nowToPar)}`,
     });
 
@@ -235,7 +285,7 @@ export function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setG
         <span className="callout-detail">{callout.detail}</span>
       </div>}
     </div>
-    {callout?.tone === "ace" && <Confetti key={`confetti-${callout.key}`} />}
+    {callout?.celebrate && <Confetti key={`confetti-${callout.key}`} />}
 
     {undo && <div className="undo-bar" key={`undo-${undo.key}`} role="status">
       <span>{undo.text}</span>
