@@ -16,6 +16,7 @@ import type { GameRecord } from "./records";
  */
 export const NICKNAMES: Record<string, string> = {
   zaccyboi18: "zac",
+  dazza: "daz",
 };
 
 export const playerKey = (name: string): string => {
