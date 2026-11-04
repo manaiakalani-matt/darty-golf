@@ -18,6 +18,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:4173",
+  "http://localhost:5174", // safe local demo (npm run dev with VITE_DARTY_GOLF_API_URL)
 ]);
 
 const corsHeaders = (request: Request): Record<string, string> => {
@@ -123,7 +124,8 @@ export default {
     } catch (error) {
       if (error instanceof ValidationError) return json(request, { ok: false, message: error.message }, 400);
       console.error("Darty Golf API error", error);
-      return json(request, { ok: false, message: "Something went wrong saving to the clubhouse." }, 500);
+      const message = request.method === "POST" ? "Something went wrong saving to the clubhouse." : "Something went wrong loading the clubhouse records.";
+      return json(request, { ok: false, message }, 500);
     }
   },
 } satisfies ExportedHandler<Env>;

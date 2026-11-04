@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
-import {
-  RESULTS, completedHoles, createGame, scoreHole,
-  totalScore, undoLastScore, winnerNames, type GameMode, type GolfGame, type Stroke,
-} from "./domain/golf";
+import { useEffect, useMemo, useState } from "react";
+import { RESULTS, createGame, type GameMode, type GolfGame } from "./domain/golf";
+import { assignColors, initialOf } from "./domain/players";
 import { topRecords, type GameRecord } from "./domain/records";
+import { Play } from "./components/Play";
+import { Scorecard } from "./components/Scorecard";
 import { fetchRecords, isCloudConnected, saveCompletedGame } from "./services/golfApi";
-import { addToOutbox, flushOutbox, loadActiveRound, loadOutbox, removeFromOutbox, saveActiveRound } from "./services/localStore";
+import {
+  addToOutbox, flushOutbox, loadActiveRound, loadRecentPlayers, rememberPlayers, saveActiveRound,
+} from "./services/localStore";
 
 type AppView = "home" | "records";
 
@@ -36,9 +38,26 @@ function Setup({ onStart, onRecords, savedRound, onResume, onDiscard }: {
   const [holes, setHoles] = useState<9 | 18>(18);
   const [names, setNames] = useState([""]);
 
+  const [recent] = useState(loadRecentPlayers);
+  const colors = assignColors(names.map((name) => name || "?"));
+
   const chooseMode = (next: GameMode) => {
     setMode(next);
-    setNames(next === "solo" ? [names[0] || ""] : ["", ""]);
+    setNames(next === "solo" ? [names[0] || ""] : [names[0] || "", names[1] || ""]);
+  };
+  const isPicked = (name: string) => names.some((entry) => entry.trim().toLowerCase() === name.toLowerCase());
+  /** Tapping a remembered name fills the next empty slot (adding one in group mode); tapping again removes it. */
+  const togglePlayer = (name: string) => {
+    if (isPicked(name)) {
+      const kept = names.filter((entry) => entry.trim().toLowerCase() !== name.toLowerCase());
+      const minimum = mode === "solo" ? 1 : 2;
+      setNames([...kept, ...Array<string>(Math.max(0, minimum - kept.length)).fill("")]);
+      return;
+    }
+    if (mode === "solo") { setNames([name]); return; }
+    const empty = names.findIndex((entry) => !entry.trim());
+    if (empty >= 0) setNames(names.map((entry, i) => (i === empty ? name : entry)));
+    else if (names.length < 8) setNames([...names, name]);
   };
   const canStart = names.length > 0 && names.every((name) => name.trim()) && new Set(names.map((name) => name.trim().toLowerCase())).size === names.length;
 
@@ -64,11 +83,28 @@ function Setup({ onStart, onRecords, savedRound, onResume, onDiscard }: {
         <button className={holes === 18 ? "active" : ""} onClick={() => setHoles(18)}>Full 18</button>
       </div>
 
+      {recent.length > 0 && <div className="recent-players" role="group" aria-label="Recent players">
+        <p className="recent-label">Tap to add</p>
+        <div className="recent-chips">
+          {recent.map((name) => {
+            const color = assignColors([name])[0];
+            const picked = isPicked(name);
+            return <button key={name} className={`player-chip${picked ? " picked" : ""}`} aria-pressed={picked} onClick={() => togglePlayer(name)}>
+              <span className="chip-avatar" style={{ background: color.fill, color: color.ink }} aria-hidden="true">{picked ? "✓" : initialOf(name)}</span>
+              {name}
+            </button>;
+          })}
+        </div>
+      </div>}
+
       <div className="names">
         {names.map((name, index) => <label key={index}>
           {mode === "solo" ? "Player name" : `Player ${index + 1}`}
-          <input value={name} maxLength={28} autoFocus={index === 0 && !savedRound} placeholder={mode === "solo" ? "Your name" : `Player ${index + 1} name`}
-            onChange={(event) => setNames(names.map((old, i) => i === index ? event.target.value : old))} />
+          <span className="name-field">
+            <span className="name-dot" style={{ background: name.trim() ? colors[index].fill : "#d5d0bf" }} aria-hidden="true">{name.trim() ? initialOf(name) : ""}</span>
+            <input value={name} maxLength={28} autoFocus={index === 0 && !savedRound && recent.length === 0} placeholder={mode === "solo" ? "Your name" : `Player ${index + 1} name`}
+              onChange={(event) => setNames(names.map((old, i) => i === index ? event.target.value : old))} />
+          </span>
         </label>)}
       </div>
       {mode === "group" && names.length < 8 && <button className="text-button" onClick={() => setNames([...names, ""])}>+ Add another player</button>}
@@ -106,15 +142,10 @@ function RecordScoreSheet({ record, onClose }: { record: GameRecord; onClose: ()
         <div><p className="eyebrow">{record.holes}-hole score sheet</p><h2 id="score-sheet-title">{record.winner}</h2></div>
         <button className="score-toggle" onClick={onClose} aria-label="Close score sheet">Close</button>
       </div>
-      <div className="scorecard-wrap">
-        <table className="scorecard">
-          <thead><tr><th>Hole</th>{record.competitors.map((competitor) => <th key={competitor.name}>{competitor.name}</th>)}</tr></thead>
-          <tbody>{Array.from({ length: record.holes }, (_, index) => <tr key={index}>
-            <th>{index + 1}</th>{record.competitors.map((competitor) => <td key={competitor.name}>{competitor.scores[index] ?? "–"}</td>)}
-          </tr>)}</tbody>
-          <tfoot><tr><th>Total</th>{record.competitors.map((competitor) => <td key={competitor.name}>{competitor.total}</td>)}</tr></tfoot>
-        </table>
-      </div>
+      <Scorecard holes={record.holes} players={(() => {
+        const colors = assignColors(record.competitors.map((competitor) => competitor.name));
+        return record.competitors.map((competitor, i) => ({ key: competitor.name, name: competitor.name, scores: competitor.scores, color: colors[i] }));
+      })()} />
     </section>
   </div>;
 }
@@ -175,143 +206,6 @@ function Records({ onHome }: { onHome: () => void }) {
   </main>;
 }
 
-function Scorecard({ game }: { game: GolfGame }) {
-  return <div className="scorecard-wrap">
-    <table className="scorecard">
-      <thead><tr><th>Hole</th>{game.competitors.map((competitor) => <th key={competitor.id}>{competitor.name}</th>)}</tr></thead>
-      <tbody>{Array.from({ length: game.holes }, (_, index) => <tr className={game.currentHole === index + 1 && !game.completedAt ? "current" : ""} key={index}>
-        <th>{index + 1}</th>{game.competitors.map((competitor) => <td key={competitor.id}>{competitor.scores[index] ?? "–"}</td>)}
-      </tr>)}</tbody>
-      <tfoot><tr><th>Total</th>{game.competitors.map((competitor) => <td key={competitor.id}>{totalScore(competitor)}</td>)}</tr></tfoot>
-    </table>
-  </div>;
-}
-
-const polarPoint = (radius: number, angle: number): [number, number] => {
-  const radians = angle * Math.PI / 180;
-  return [180 + radius * Math.cos(radians), 292 + radius * Math.sin(radians)];
-};
-
-const wedgePath = (inner: number, outer: number, start: number, end: number): string => {
-  const [outerStartX, outerStartY] = polarPoint(outer, start);
-  const [outerEndX, outerEndY] = polarPoint(outer, end);
-  const [innerEndX, innerEndY] = polarPoint(inner, end);
-  const [innerStartX, innerStartY] = polarPoint(inner, start);
-  return `M ${outerStartX} ${outerStartY} A ${outer} ${outer} 0 0 1 ${outerEndX} ${outerEndY} L ${innerEndX} ${innerEndY} A ${inner} ${inner} 0 0 0 ${innerStartX} ${innerStartY} Z`;
-};
-
-function DartboardSegment({ hole, onScore }: { hole: number; onScore: (score: Stroke) => void }) {
-  const boardOrder = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
-  const redRing = boardOrder.indexOf(hole) % 2 === 0;
-  const ring = redRing ? "red" : "green";
-  const single = redRing ? "dark" : "light";
-  const adjacentRing = redRing ? "green" : "red";
-  const adjacentSingle = redRing ? "light" : "dark";
-  const activate = (score: Stroke) => onScore(score);
-  const keyActivate = (event: KeyboardEvent<SVGGElement>, score: Stroke) => {
-    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); activate(score); }
-  };
-  const zone = (score: Stroke, label: string, children: ReactNode) => <g className="svg-zone"
-    role="button" tabIndex={0} aria-label={`${label}, ${score} ${score === 1 ? "stroke" : "strokes"}`}
-    onClick={() => activate(score)} onKeyDown={(event) => keyActivate(event, score)}>{children}</g>;
-
-  return <section className="dartboard-picker" aria-label="Where did the dart land?">
-    <svg className="dartboard-segment" viewBox="0 0 360 310" role="group" aria-label={`Dartboard segment for target ${hole}`}>
-      <defs>
-        <filter id="board-shadow" x="-30%" y="-20%" width="160%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#09251b" floodOpacity=".22" /></filter>
-      </defs>
-      <g filter="url(#board-shadow)">
-        {zone(5, "Wrong number", <>
-          <path className={`board-single ${adjacentSingle}`} d={wedgePath(24, 242, -128, -111)} />
-          <path className={`board-ring ${adjacentRing}`} d={wedgePath(220, 242, -128, -111)} />
-          <path className={`board-ring ${adjacentRing}`} d={wedgePath(130, 151, -128, -111)} />
-          <text className={`board-number adjacent ${adjacentSingle}`} x="91" y="151">5</text>
-          <path className={`board-single ${adjacentSingle}`} d={wedgePath(24, 242, -69, -52)} />
-          <path className={`board-ring ${adjacentRing}`} d={wedgePath(220, 242, -69, -52)} />
-          <path className={`board-ring ${adjacentRing}`} d={wedgePath(130, 151, -69, -52)} />
-          <text className={`board-number adjacent ${adjacentSingle}`} x="269" y="151">5</text>
-        </>)}
-        {zone(6, "Outside board", <><path className="board-outside" d={wedgePath(242, 267, -111, -69)} /><text className="board-number outside" x="180" y="36">6</text></>)}
-        {zone(1, "Double", <><path className={`board-ring ${ring}`} d={wedgePath(220, 242, -111, -69)} /><text className="board-number ring" x="180" y="67">1</text></>)}
-        {zone(4, "Large single", <><path className={`board-single ${single}`} d={wedgePath(151, 220, -111, -69)} /><text className="board-number" x="180" y="109">4</text></>)}
-        {zone(2, "Treble", <><path className={`board-ring ${ring}`} d={wedgePath(130, 151, -111, -69)} /><text className="board-number ring" x="180" y="153">2</text></>)}
-        {zone(3, "Small single", <><path className={`board-single ${single}`} d={wedgePath(24, 130, -111, -69)} /><text className="board-number" x="180" y="213">3</text></>)}
-        <circle className="board-bull-outer" cx="180" cy="292" r="24" /><circle className="board-bull" cx="180" cy="292" r="10" />
-      </g>
-    </svg>
-    <button className="bounce-zone" onClick={() => activate(7)} aria-label="Bounce Out / Off The Board, 7 strokes">
-      <span className="bounce-arrow">↩</span><span className="zone-score">7</span><span><b>Bounce out</b><small>or off the board</small></span>
-    </button>
-  </section>;
-}
-
-function Play({ game, setGame, onNew, onRecords }: { game: GolfGame; setGame: (game: GolfGame) => void; onNew: () => void; onRecords: () => void }) {
-  const active = game.competitors[game.currentCompetitor];
-  const canUndo = game.competitors.some((competitor) => completedHoles(competitor) > 0);
-  const [showCard, setShowCard] = useState(false);
-  const [saveStatus, setSaveStatus] = useState("");
-  const leaders = useMemo(() => [...game.competitors].sort((a, b) => totalScore(a) - totalScore(b)), [game]);
-
-  useEffect(() => {
-    if (!game.completedAt) return;
-    const keptOnDevice = loadOutbox().some((queued) => queued.id === game.id);
-    const offlineMessage = keptOnDevice
-      ? "Couldn't reach the clubhouse. This round is kept on this phone and will upload automatically."
-      : "This round couldn't be saved. Screenshot the scorecard to keep a copy.";
-    if (!isCloudConnected()) {
-      setSaveStatus(keptOnDevice ? "Saved on this phone" : offlineMessage);
-      return;
-    }
-    let cancelled = false;
-    setSaveStatus("Saving to the clubhouse…");
-    saveCompletedGame(game)
-      .then(() => { removeFromOutbox(game.id); if (!cancelled) setSaveStatus("Round saved to the clubhouse ✓"); })
-      .catch(() => { if (!cancelled) setSaveStatus(offlineMessage); });
-    return () => { cancelled = true; };
-  }, [game.completedAt]);
-
-  if (game.completedAt) {
-    const winners = winnerNames(game);
-    return <main className="shell results-shell">
-      <header className="hero compact-hero"><div className="flag">🏆</div><p className="eyebrow">Clubhouse result</p><h1>{winners.join(" & ")}</h1><p>{winners.length > 1 ? "Finish tied for the lead" : "Wins Darty Golf"}</p></header>
-      <section className="card leaderboard">
-        {leaders.map((competitor, index) => <div className="leader-row" key={competitor.id}><span className="place">{index + 1}</span><strong>{competitor.name}</strong><b>{totalScore(competitor)}</b></div>)}
-        <small>{saveStatus}</small>
-      </section>
-      <section className="card"><Scorecard game={game} /></section>
-      <div className="result-actions">
-        <button className="primary" onClick={onNew}>Play another round</button>
-        <button className="secondary" onClick={onRecords}>View records</button>
-      </div>
-    </main>;
-  }
-
-  return <main className="shell play-shell">
-    <header className="play-header">
-      <div><p className="eyebrow">Hole {game.currentHole} of {game.holes}</p><h1>{active.name}</h1></div>
-      <button className="score-toggle" onClick={() => setShowCard(!showCard)}>{showCard ? "Close" : "Scorecard"}</button>
-    </header>
-    {showCard && <section className="card overlay-card"><Scorecard game={game} /></section>}
-
-    <section className="target-card">
-      <p>Target number</p><div className="hole-number">{game.currentHole}</div>
-      <div className="round-line"><span>Current score</span><strong>{totalScore(active)}</strong></div>
-    </section>
-
-    <section className="score-prompt">
-      <strong>Score your final dart</strong>
-      <p>Tap where it landed to move to the next turn.</p>
-    </section>
-
-    <DartboardSegment hole={game.currentHole} onScore={(score) => setGame(scoreHole(game, score))} />
-
-    <div className="round-actions">
-      <button className="secondary" disabled={!canUndo} onClick={() => setGame(undoLastScore(game))}>Undo last score</button>
-      <button className="exit-button" onClick={() => window.confirm("Exit this round? Your unfinished scores will be lost.") && onNew()}>Exit round</button>
-    </div>
-  </main>;
-}
-
 export default function App() {
   const [view, setView] = useState<AppView>("home");
   const [game, setGame] = useState<GolfGame | null>(null);
@@ -340,6 +234,7 @@ export default function App() {
   };
   const startGame = (next: GolfGame) => {
     if (savedRound && !window.confirm("Starting a new round will discard your unfinished one. Continue?")) return;
+    rememberPlayers(next.competitors.map((competitor) => competitor.name));
     updateGame(next);
   };
   const discardSaved = () => { saveActiveRound(null); setSavedRound(null); };

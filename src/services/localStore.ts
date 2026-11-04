@@ -69,6 +69,26 @@ export const removeFromOutbox = (gameId: string, store = defaultStore()): void =
   writeJson(store, OUTBOX_KEY, remaining.length ? remaining : null);
 };
 
+const PLAYERS_KEY = "darty-golf:recent-players";
+const MAX_RECENT_PLAYERS = 12;
+
+/** Names of people who've played on this phone, most recent first. */
+export const loadRecentPlayers = (store = defaultStore()): string[] => {
+  const names = readJson(store, PLAYERS_KEY);
+  return Array.isArray(names) ? names.filter((name): name is string => typeof name === "string" && Boolean(name.trim())).slice(0, MAX_RECENT_PLAYERS) : [];
+};
+
+export const rememberPlayers = (names: string[], store = defaultStore()): void => {
+  const fresh = names.map((name) => name.trim()).filter(Boolean);
+  const seen = new Set(fresh.map((name) => name.toLowerCase()));
+  const older = loadRecentPlayers(store).filter((name) => !seen.has(name.toLowerCase()));
+  writeJson(store, PLAYERS_KEY, [...fresh, ...older].slice(0, MAX_RECENT_PLAYERS));
+};
+
+export const forgetPlayer = (name: string, store = defaultStore()): void => {
+  writeJson(store, PLAYERS_KEY, loadRecentPlayers(store).filter((saved) => saved.toLowerCase() !== name.toLowerCase()));
+};
+
 /**
  * Tries to upload every waiting round. Rounds that upload are removed; the
  * rest stay for next time. Returns how many are still waiting.

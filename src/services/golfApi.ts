@@ -3,7 +3,9 @@ import type { GameRecord } from "../domain/records";
 
 // Cloudflare Worker + D1 (see worker/). The previous Google Apps Script backend in apps-script/
 // is no longer used by the app but still runs as a fallback, holding every round up to the move on 4 Nov 2026.
-export const DARTY_GOLF_API_URL = "https://darty-golf-api.mattsdarts.workers.dev";
+// For local testing, VITE_DARTY_GOLF_API_URL=http://localhost:8787 points the app at `npm run worker:dev`
+// so practice rounds never reach the real leaderboard.
+export const DARTY_GOLF_API_URL: string = import.meta.env.VITE_DARTY_GOLF_API_URL || "https://darty-golf-api.mattsdarts.workers.dev";
 export const isCloudConnected = (): boolean => Boolean(DARTY_GOLF_API_URL);
 
 export async function saveCompletedGame(game: GolfGame): Promise<void> {

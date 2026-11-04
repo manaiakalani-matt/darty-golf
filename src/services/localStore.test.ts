@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createGame, scoreHole, type GolfGame } from "../domain/golf";
-import { addToOutbox, flushOutbox, loadActiveRound, loadOutbox, saveActiveRound } from "./localStore";
+import { addToOutbox, flushOutbox, forgetPlayer, loadActiveRound, loadOutbox, loadRecentPlayers, rememberPlayers, saveActiveRound } from "./localStore";
 
 const memoryStore = () => {
   const data = new Map<string, string>();
@@ -61,6 +61,23 @@ describe("Saving the round in progress", () => {
     expect(loadActiveRound(brokenStore)).toBeNull();
     expect(addToOutbox(finishedGame("Peter"), brokenStore)).toBe(false);
     expect(loadOutbox(brokenStore)).toEqual([]);
+  });
+});
+
+describe("Remembered players", () => {
+  it("keeps the most recent line-up first without duplicates", () => {
+    const store = memoryStore();
+    rememberPlayers(["Daz", "Darren"], store);
+    rememberPlayers(["Zac", "daz"], store);
+    expect(loadRecentPlayers(store)).toEqual(["Zac", "daz", "Darren"]);
+  });
+
+  it("caps the list and can forget someone", () => {
+    const store = memoryStore();
+    rememberPlayers(Array.from({ length: 20 }, (_, i) => `P${i}`), store);
+    expect(loadRecentPlayers(store)).toHaveLength(12);
+    forgetPlayer("p0", store);
+    expect(loadRecentPlayers(store)[0]).toBe("P1");
   });
 });
 
