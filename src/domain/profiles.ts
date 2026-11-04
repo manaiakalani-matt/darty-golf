@@ -3,12 +3,25 @@
  * is worked out on the phone from the records the API already returns.
  *
  * Names are matched ignoring capitals and spaces at the ends, so "Zaccyboi18"
- * and "zaccyboi18" are one player. Different nicknames stay separate.
+ * and "zaccyboi18" are one player. Different nicknames stay separate unless
+ * they are listed in NICKNAMES.
  */
 import { PAR } from "./golf";
 import type { GameRecord } from "./records";
 
-export const playerKey = (name: string): string => name.trim().toLowerCase();
+/**
+ * Nicknames for the same person, in lowercase: nickname → the name their stats
+ * are kept under. Add a line here to merge two names. The profile shows
+ * whichever name they played under most recently.
+ */
+export const NICKNAMES: Record<string, string> = {
+  zaccyboi18: "zac",
+};
+
+export const playerKey = (name: string): string => {
+  const key = name.trim().toLowerCase();
+  return NICKNAMES[key] ?? key;
+};
 
 export interface RoundLine {
   recordId: string;

@@ -28,6 +28,18 @@ describe("Player profiles", () => {
     expect(daz.name).toBe("Daz");
   });
 
+  it("merges nicknames listed for the same person", () => {
+    const merged = buildProfiles([
+      round("a", 1, 9, [["Zaccyboi18", nine(3, 3, 3, 3, 3, 3, 3, 3, 3)]]),
+      round("b", 2, 9, [["Zac", nine(2, 2, 2, 2, 2, 2, 2, 2, 2)], ["Daz", nine(3, 3, 3, 3, 3, 3, 3, 3, 3)]]),
+    ]);
+    const zac = merged.find((p) => p.key === "zac")!;
+    expect(merged.map((p) => p.key).sort()).toEqual(["daz", "zac"]);
+    expect(zac.roundsPlayed).toBe(2);
+    expect(zac.name).toBe("Zac");
+    expect(merged.find((p) => p.key === "daz")!.headToHead[0].opponentKey).toBe("zac");
+  });
+
   it("counts results, bests and wins", () => {
     const daz = profileOf("daz");
     expect(daz.holesInOne).toBe(1);
