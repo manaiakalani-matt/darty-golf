@@ -8,18 +8,24 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false && tsc --project tsconfig.worker.json",
+    "worker:dev": "wrangler dev --local",
+    "worker:deploy": "wrangler d1 migrations apply darty-golf --remote && wrangler deploy",
+    "worker:test:integration": "node scripts/test-worker-integration.mjs",
+    "worker:import-sheets": "node scripts/import-from-sheets.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261104.1",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
     "typescript": "^5.9.2",
     "vite": "^7.1.5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.157.0"
   }
 }

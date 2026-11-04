@@ -5,5 +5,5 @@ export default defineConfig({
   base: "./",
   plugins: [react()],
   build: { target: ["safari12", "ios12"], cssTarget: "safari12" },
-  test: { environment: "node", include: ["src/**/*.test.ts"] },
+  test: { environment: "node", include: ["src/**/*.test.ts", "worker/**/*.test.ts"] },
 });

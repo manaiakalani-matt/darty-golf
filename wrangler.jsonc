@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "darty-golf-api",
+  "account_id": "06c628eca6e4c5dceac46ffe36a35372",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-31",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "darty-golf",
+      "database_id": "3c2e046a-7b5d-4b56-9166-c3d9f1649a34",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 }
+  }
+}
